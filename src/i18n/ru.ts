@@ -60,8 +60,7 @@ export const ru: I18nDictionary = {
     "⏳ Агент уже выполняет задачу. Дождитесь завершения или используйте /stop, чтобы прервать текущий запуск.",
   "bot.session_reset_project_mismatch":
     "⚠️ Активная сессия не соответствует выбранному проекту, поэтому была сброшена. Используйте /sessions для выбора или /new для создания новой сессии.",
-  "bot.prompt_send_error_detailed": "🔴 Ошибка при отправке запроса.\n\nДетали: {details}",
-  "bot.prompt_send_error": "🔴 Произошла ошибка при отправке запроса в OpenCode.",
+  "bot.prompt_send_error": "Не удалось отправить запрос в OpenCode.",
   "bot.unknown_command": "⚠️ Неизвестная команда: {command}. Используйте /help для списка команд.",
 
   "status.header_running": "🟢 **OpenCode Server запущен**",

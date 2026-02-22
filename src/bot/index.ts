@@ -850,6 +850,16 @@ export function createBot(): Bot<Context> {
         }
       }
 
+      const promptErrorLogContext = {
+        sessionId: currentSession.id,
+        directory: currentSession.directory,
+        agent: currentAgent || "default",
+        modelProvider: storedModel.providerID || "default",
+        modelId: storedModel.modelID || "default",
+        variant: storedModel.variant || "default",
+        promptLength: text.length,
+      };
+
       logger.info(`[Bot] Calling session.prompt (fire-and-forget) with agent=${currentAgent}...`);
 
       // CRITICAL: DO NOT wait for session.prompt to complete.
@@ -861,24 +871,26 @@ export function createBot(): Bot<Context> {
         task: () => opencodeClient.session.prompt(promptOptions),
         onSuccess: ({ error }) => {
           if (error) {
-            const details = formatErrorDetails(error);
-            logger.error("OpenCode API error:", error);
-            // Send the error via API directly because ctx is no longer available
-            void bot.api
-              .sendMessage(
-                ctx.chat.id,
-                t("bot.prompt_send_error_detailed", {
-                  details,
-                }),
-              )
-              .catch(() => {});
+            const details = formatErrorDetails(error, 6000);
+            logger.error(
+              "[Bot] OpenCode API returned an error for session.prompt",
+              promptErrorLogContext,
+            );
+            logger.error("[Bot] session.prompt error details:", details);
+            logger.error("[Bot] session.prompt raw API error object:", error);
+
+            // Send user-friendly error via API directly because ctx is no longer available
+            void bot.api.sendMessage(ctx.chat.id, t("bot.prompt_send_error")).catch(() => {});
             return;
           }
 
           logger.info("[Bot] session.prompt completed");
         },
         onError: (error) => {
-          logger.error("[Bot] session.prompt background task failed:", error);
+          const details = formatErrorDetails(error, 6000);
+          logger.error("[Bot] session.prompt background task failed", promptErrorLogContext);
+          logger.error("[Bot] session.prompt background failure details:", details);
+          logger.error("[Bot] session.prompt raw background error object:", error);
           void bot.api.sendMessage(ctx.chat.id, t("bot.prompt_send_error")).catch(() => {});
         },
       });

@@ -61,8 +61,7 @@ export const en = {
     "⏳ Agent is already running a task. Wait for completion or use /stop to interrupt current run.",
   "bot.session_reset_project_mismatch":
     "⚠️ Active session does not match the selected project, so it was reset. Use /sessions to pick one or /new to create a new session.",
-  "bot.prompt_send_error_detailed": "🔴 Failed to send request.\n\nDetails: {details}",
-  "bot.prompt_send_error": "🔴 An error occurred while sending request to OpenCode.",
+  "bot.prompt_send_error": "Failed to send request to OpenCode.",
   "bot.unknown_command": "⚠️ Unknown command: {command}. Use /help to see available commands.",
 
   "status.header_running": "🟢 **OpenCode Server is running**",
