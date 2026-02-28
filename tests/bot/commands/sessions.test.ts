@@ -240,4 +240,55 @@ describe("bot/commands/sessions", () => {
     });
     expect(ctx.editMessageText).not.toHaveBeenCalled();
   });
+
+  it("keeps active menu and interaction state when page load fails", async () => {
+    mocked.sessionListMock.mockResolvedValueOnce({
+      data: null,
+      error: new Error("session list failed"),
+    });
+
+    interactionManager.start({
+      kind: "inline",
+      expectedInput: "callback",
+      metadata: {
+        menuKind: "session",
+        messageId: 456,
+      },
+    });
+
+    const ctx = createCallbackContext("session:page:1", 456);
+    const handled = await handleSessionSelect(ctx);
+
+    expect(handled).toBe(true);
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledWith({
+      text: t("sessions.page_load_error_callback"),
+    });
+    expect((ctx.api.deleteMessage as ReturnType<typeof vi.fn>).mock.calls).toEqual([]);
+    expect(ctx.deleteMessage).not.toHaveBeenCalled();
+    expect(mocked.clearInteractionMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps generic selection error flow when session details fetch fails", async () => {
+    mocked.sessionGetMock.mockResolvedValueOnce({
+      data: null,
+      error: new Error("session get failed"),
+    });
+
+    interactionManager.start({
+      kind: "inline",
+      expectedInput: "callback",
+      metadata: {
+        menuKind: "session",
+        messageId: 456,
+      },
+    });
+
+    const ctx = createCallbackContext("session:session-1", 456);
+    const handled = await handleSessionSelect(ctx);
+
+    expect(handled).toBe(true);
+    expect(mocked.clearInteractionMock).toHaveBeenCalledWith("session_select_error");
+    expect(ctx.answerCallbackQuery).toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(t("sessions.select_error"));
+  });
 });

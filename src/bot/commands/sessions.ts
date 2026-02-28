@@ -194,19 +194,25 @@ export async function handleSessionSelect(ctx: Context): Promise<boolean> {
     }
 
     if (page !== null) {
-      const pageSize = config.bot.sessionsListLimit;
-      const pageData = await loadSessionPage(currentProject.worktree, page, pageSize);
-      if (pageData.sessions.length === 0) {
-        await ctx.answerCallbackQuery({ text: t("sessions.page_empty_callback") });
-        return true;
+      try {
+        const pageSize = config.bot.sessionsListLimit;
+        const pageData = await loadSessionPage(currentProject.worktree, page, pageSize);
+        if (pageData.sessions.length === 0) {
+          await ctx.answerCallbackQuery({ text: t("sessions.page_empty_callback") });
+          return true;
+        }
+
+        const keyboard = buildSessionsKeyboard(pageData, pageSize);
+        appendInlineMenuCancelButton(keyboard, "session");
+        await ctx.editMessageText(formatSessionsSelectText(pageData.page), {
+          reply_markup: keyboard,
+        });
+        await ctx.answerCallbackQuery();
+      } catch (error) {
+        logger.error("[Sessions] Error loading sessions page:", error);
+        await ctx.answerCallbackQuery({ text: t("sessions.page_load_error_callback") });
       }
 
-      const keyboard = buildSessionsKeyboard(pageData, pageSize);
-      appendInlineMenuCancelButton(keyboard, "session");
-      await ctx.editMessageText(formatSessionsSelectText(pageData.page), {
-        reply_markup: keyboard,
-      });
-      await ctx.answerCallbackQuery();
       return true;
     }
 
