@@ -97,3 +97,23 @@ export function formatFileSize(bytes: number): string {
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
+
+const APPLICATION_TEXT_MIME_TYPES = new Set([
+  "application/json",
+  "application/xml",
+  "application/javascript",
+  "application/x-yaml",
+  "application/sql",
+]);
+
+export function isTextMimeType(mimeType: string | undefined): boolean {
+  if (!mimeType) {
+    return false;
+  }
+
+  if (mimeType.startsWith("text/")) {
+    return true;
+  }
+
+  return APPLICATION_TEXT_MIME_TYPES.has(mimeType);
+}

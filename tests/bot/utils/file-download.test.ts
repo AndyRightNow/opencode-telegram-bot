@@ -3,6 +3,7 @@ import {
   toDataUri,
   formatFileSize,
   isFileSizeAllowed,
+  isTextMimeType,
 } from "../../../src/bot/utils/file-download.js";
 
 describe("bot/utils/file-download", () => {
@@ -63,6 +64,47 @@ describe("bot/utils/file-download", () => {
       expect(formatFileSize(1024 * 1024)).toBe("1.0MB");
       expect(formatFileSize(2.5 * 1024 * 1024)).toBe("2.5MB");
       expect(formatFileSize(10 * 1024 * 1024)).toBe("10.0MB");
+    });
+  });
+
+  describe("isTextMimeType", () => {
+    it("returns true for text/* MIME types", () => {
+      expect(isTextMimeType("text/plain")).toBe(true);
+      expect(isTextMimeType("text/markdown")).toBe(true);
+      expect(isTextMimeType("text/html")).toBe(true);
+      expect(isTextMimeType("text/css")).toBe(true);
+      expect(isTextMimeType("text/javascript")).toBe(true);
+      expect(isTextMimeType("text/x-python")).toBe(true);
+      expect(isTextMimeType("text/csv")).toBe(true);
+    });
+
+    it("returns true for whitelisted application/* types", () => {
+      expect(isTextMimeType("application/json")).toBe(true);
+      expect(isTextMimeType("application/xml")).toBe(true);
+      expect(isTextMimeType("application/javascript")).toBe(true);
+      expect(isTextMimeType("application/x-yaml")).toBe(true);
+      expect(isTextMimeType("application/sql")).toBe(true);
+    });
+
+    it("returns false for other application/* types", () => {
+      expect(isTextMimeType("application/pdf")).toBe(false);
+      expect(isTextMimeType("application/zip")).toBe(false);
+      expect(isTextMimeType("application/octet-stream")).toBe(false);
+      expect(isTextMimeType("application/msword")).toBe(false);
+    });
+
+    it("returns false for image/* types", () => {
+      expect(isTextMimeType("image/png")).toBe(false);
+      expect(isTextMimeType("image/jpeg")).toBe(false);
+      expect(isTextMimeType("image/gif")).toBe(false);
+    });
+
+    it("returns false for undefined", () => {
+      expect(isTextMimeType(undefined)).toBe(false);
+    });
+
+    it("returns false for empty string", () => {
+      expect(isTextMimeType("")).toBe(false);
     });
   });
 });

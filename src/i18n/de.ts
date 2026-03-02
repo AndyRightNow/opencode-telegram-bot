@@ -82,6 +82,7 @@ export const de: I18nDictionary = {
   "bot.file_too_large": "⚠️ Datei ist zu groß (max. {maxSizeMb}MB)",
   "bot.file_download_error": "🔴 Datei konnte nicht heruntergeladen werden",
   "bot.model_no_pdf": "⚠️ Das aktuelle Modell unterstützt keine PDF-Eingabe. Sende nur Text.",
+  "bot.text_file_too_large": "⚠️ Textdatei ist zu groß (max. {maxSizeKb}KB)",
 
   "status.header_running": "🟢 **OpenCode-Server läuft**",
   "status.health.healthy": "OK",

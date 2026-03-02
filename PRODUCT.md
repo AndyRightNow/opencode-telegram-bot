@@ -149,6 +149,7 @@ Open tasks for upcoming iterations:
 - [x] Improve Telegram-compatible message formatting for richer outputs
 - [x] Support sending photos from Telegram to OpenCode (screenshots, images)
 - [x] Support sending PDF documents from Telegram to OpenCode
+- [x] Support sending text files from Telegram to OpenCode (code, configs, etc.)
 - [ ] Provide a Docker image and basic container deployment guide
 - [x] Add voice transcription
 
