@@ -59,13 +59,13 @@ export const en = {
     "🔴 Failed to create session. Try /new or check server status with /status.",
   "bot.session_created": "✅ Session created: {title}",
   "bot.session_busy":
-    "⏳ Agent is already running a task. Wait for completion or use /stop to interrupt current run.",
+    "⏳ Agent is already running a task. Wait for completion or use /abort to interrupt current run.",
   "bot.session_reset_project_mismatch":
     "⚠️ Active session does not match the selected project, so it was reset. Use /sessions to pick one or /new to create a new session.",
   "bot.prompt_send_error": "Failed to send request to OpenCode.",
   "bot.session_error": "🔴 OpenCode returned an error: {message}",
   "bot.session_retry":
-    "🔁 {message}\n\nProvider keeps returning the same error on repeated retries. Use /stop to abort.",
+    "🔁 {message}\n\nProvider keeps returning the same error on repeated retries. Use /abort to abort.",
   "bot.unknown_command": "⚠️ Unknown command: {command}. Use /help to see available commands.",
   "bot.photo_downloading": "⏳ Downloading photo...",
   "bot.photo_too_large": "⚠️ Photo is too large (max {maxSizeMb}MB)",
@@ -144,15 +144,15 @@ export const en = {
   "stop.in_progress":
     "🛑 Event stream stopped, sending abort signal...\n\nWaiting for agent to stop.",
   "stop.warn_unconfirmed":
-    "⚠️ Event stream stopped, but server did not confirm abort.\n\nCheck /status and retry /stop in a few seconds.",
+    "⚠️ Event stream stopped, but server did not confirm abort.\n\nCheck /status and retry /abort in a few seconds.",
   "stop.warn_maybe_finished": "⚠️ Event stream stopped, but the agent may have already finished.",
   "stop.success": "✅ Agent action interrupted. No more messages from this run will be sent.",
   "stop.warn_still_busy":
     "⚠️ Signal sent, but agent is still busy.\n\nEvent stream is already disabled, so no intermediate messages will be sent.",
   "stop.warn_timeout":
-    "⚠️ Abort request timeout.\n\nEvent stream is already disabled, retry /stop in a few seconds.",
+    "⚠️ Abort request timeout.\n\nEvent stream is already disabled, retry /abort in a few seconds.",
   "stop.warn_local_only": "⚠️ Event stream stopped locally, but server-side abort failed.",
-  "stop.error": "🔴 Failed to stop action.\n\nEvent stream is stopped, try /stop again.",
+  "stop.error": "🔴 Failed to stop action.\n\nEvent stream is stopped, try /abort again.",
 
   "opencode_start.already_running_managed":
     "⚠️ OpenCode Server is already running\n\nPID: {pid}\nUptime: {seconds} seconds",

@@ -4,7 +4,7 @@ import { startCommand } from "../../../src/bot/commands/start.js";
 import { t } from "../../../src/i18n/index.js";
 
 const mocked = vi.hoisted(() => ({
-  stopCurrentOperationMock: vi.fn(),
+  abortCurrentOperationMock: vi.fn(),
   clearSessionMock: vi.fn(),
   clearProjectMock: vi.fn(),
   createMainKeyboardMock: vi.fn(() => ({ keyboard: true })),
@@ -28,8 +28,8 @@ const mocked = vi.hoisted(() => ({
   keyboardClearContextMock: vi.fn(),
 }));
 
-vi.mock("../../../src/bot/commands/stop.js", () => ({
-  stopCurrentOperation: mocked.stopCurrentOperationMock,
+vi.mock("../../../src/bot/commands/abort.js", () => ({
+  abortCurrentOperation: mocked.abortCurrentOperationMock,
 }));
 
 vi.mock("../../../src/session/manager.js", () => ({
@@ -87,8 +87,8 @@ function createStartContext(): Context {
 
 describe("bot/commands/start", () => {
   beforeEach(() => {
-    mocked.stopCurrentOperationMock.mockReset();
-    mocked.stopCurrentOperationMock.mockResolvedValue(undefined);
+    mocked.abortCurrentOperationMock.mockReset();
+    mocked.abortCurrentOperationMock.mockResolvedValue(undefined);
 
     mocked.clearSessionMock.mockReset();
     mocked.clearProjectMock.mockReset();
@@ -133,7 +133,7 @@ describe("bot/commands/start", () => {
 
     await startCommand(ctx);
 
-    expect(mocked.stopCurrentOperationMock).toHaveBeenCalledWith(ctx, { notifyUser: false });
+    expect(mocked.abortCurrentOperationMock).toHaveBeenCalledWith(ctx, { notifyUser: false });
     expect(mocked.clearSessionMock).toHaveBeenCalledTimes(1);
     expect(mocked.clearProjectMock).toHaveBeenCalledTimes(1);
     expect(mocked.keyboardClearContextMock).toHaveBeenCalledTimes(1);

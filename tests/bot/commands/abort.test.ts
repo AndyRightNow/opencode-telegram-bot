@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Context } from "grammy";
-import { stopCommand, stopCurrentOperation } from "../../../src/bot/commands/stop.js";
+import { abortCommand, abortCurrentOperation } from "../../../src/bot/commands/abort.js";
 import { clearAllInteractionState } from "../../../src/interaction/cleanup.js";
 import { questionManager } from "../../../src/question/manager.js";
 import { permissionManager } from "../../../src/permission/manager.js";
@@ -48,7 +48,7 @@ const TEST_PERMISSION: PermissionRequest = {
 };
 
 function activateInteractionState(): void {
-  questionManager.startQuestions([TEST_QUESTION], "req-stop");
+  questionManager.startQuestions([TEST_QUESTION], "req-abort");
   permissionManager.startPermission(TEST_PERMISSION, 101);
   renameManager.startWaiting("session-1", "D:/repo", "Old title");
   interactionManager.start({
@@ -58,7 +58,7 @@ function activateInteractionState(): void {
   });
 }
 
-describe("bot/commands/stop", () => {
+describe("bot/commands/abort", () => {
   beforeEach(() => {
     clearAllInteractionState("test_setup");
     mocked.currentSession = null;
@@ -74,7 +74,7 @@ describe("bot/commands/stop", () => {
       reply: replyMock,
     } as unknown as Context;
 
-    await stopCommand(ctx as never);
+    await abortCommand(ctx as never);
 
     expect(replyMock).toHaveBeenCalledWith(t("stop.no_active_session"));
     expect(questionManager.isActive()).toBe(false);
@@ -112,7 +112,7 @@ describe("bot/commands/stop", () => {
       },
     } as unknown as Context;
 
-    await stopCommand(ctx as never);
+    await abortCommand(ctx as never);
 
     expect(replyMock).toHaveBeenCalledWith(t("stop.in_progress"));
     expect(mocked.abortMock).toHaveBeenCalled();
@@ -124,7 +124,7 @@ describe("bot/commands/stop", () => {
     expect(interactionManager.getSnapshot()).toBeNull();
   });
 
-  it("can stop silently without stop progress messages", async () => {
+  it("can abort silently without progress messages", async () => {
     activateInteractionState();
 
     mocked.currentSession = {
@@ -152,7 +152,7 @@ describe("bot/commands/stop", () => {
       },
     } as unknown as Context;
 
-    await stopCurrentOperation(ctx as never, { notifyUser: false });
+    await abortCurrentOperation(ctx as never, { notifyUser: false });
 
     expect(mocked.abortMock).toHaveBeenCalled();
     expect(replyMock).not.toHaveBeenCalled();

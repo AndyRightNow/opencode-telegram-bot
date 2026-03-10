@@ -62,13 +62,13 @@ export const de: I18nDictionary = {
     "🔴 Sitzung konnte nicht erstellt werden. Versuche /new oder prüfe den Serverstatus mit /status.",
   "bot.session_created": "✅ Sitzung erstellt: {title}",
   "bot.session_busy":
-    "⏳ Agent führt bereits eine Aufgabe aus. Warte auf Abschluss oder nutze /stop, um den aktuellen Lauf zu unterbrechen.",
+    "⏳ Agent führt bereits eine Aufgabe aus. Warte auf Abschluss oder nutze /abort, um den aktuellen Lauf zu unterbrechen.",
   "bot.session_reset_project_mismatch":
     "⚠️ Die aktive Sitzung passt nicht zum ausgewählten Projekt und wurde daher zurückgesetzt. Nutze /sessions zur Auswahl oder /new, um eine neue Sitzung zu erstellen.",
   "bot.prompt_send_error": "Anfrage konnte nicht an OpenCode gesendet werden.",
   "bot.session_error": "🔴 OpenCode meldete einen Fehler: {message}",
   "bot.session_retry":
-    "🔁 {message}\n\nDer Provider liefert bei wiederholten Versuchen immer wieder denselben Fehler. Mit /stop abbrechen.",
+    "🔁 {message}\n\nDer Provider liefert bei wiederholten Versuchen immer wieder denselben Fehler. Mit /abort abbrechen.",
   "bot.unknown_command":
     "⚠️ Unbekannter Befehl: {command}. Nutze /help, um verfügbare Befehle zu sehen.",
   "bot.photo_downloading": "⏳ Lade Foto herunter...",
@@ -151,7 +151,7 @@ export const de: I18nDictionary = {
   "stop.in_progress":
     "🛑 Event-Stream gestoppt, sende Abbruchsignal...\n\nWarte darauf, dass der Agent stoppt.",
   "stop.warn_unconfirmed":
-    "⚠️ Event-Stream gestoppt, aber der Server hat den Abbruch nicht bestätigt.\n\nPrüfe /status und versuche /stop in ein paar Sekunden erneut.",
+    "⚠️ Event-Stream gestoppt, aber der Server hat den Abbruch nicht bestätigt.\n\nPrüfe /status und versuche /abort in ein paar Sekunden erneut.",
   "stop.warn_maybe_finished":
     "⚠️ Event-Stream gestoppt, aber der Agent konnte bereits fertig sein.",
   "stop.success":
@@ -159,11 +159,11 @@ export const de: I18nDictionary = {
   "stop.warn_still_busy":
     "⚠️ Signal gesendet, aber der Agent ist noch beschäftigt.\n\nDer Event-Stream ist bereits deaktiviert, daher werden keine Zwischenmeldungen gesendet.",
   "stop.warn_timeout":
-    "⚠️ Timeout beim Abbruch.\n\nDer Event-Stream ist bereits deaktiviert, versuche /stop in ein paar Sekunden erneut.",
+    "⚠️ Timeout beim Abbruch.\n\nDer Event-Stream ist bereits deaktiviert, versuche /abort in ein paar Sekunden erneut.",
   "stop.warn_local_only":
     "⚠️ Event-Stream lokal gestoppt, aber serverseitiger Abbruch ist fehlgeschlagen.",
   "stop.error":
-    "🔴 Aktion konnte nicht gestoppt werden.\n\nEvent-Stream ist gestoppt, versuche /stop erneut.",
+    "🔴 Aktion konnte nicht gestoppt werden.\n\nEvent-Stream ist gestoppt, versuche /abort erneut.",
 
   "opencode_start.already_running_managed":
     "⚠️ OpenCode-Server läuft bereits\n\nPID: {pid}\nBetriebszeit: {seconds} Sekunden",

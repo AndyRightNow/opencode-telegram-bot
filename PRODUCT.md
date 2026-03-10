@@ -94,7 +94,7 @@ Current command set:
 
 - `/status` - server, project, and session status
 - `/new` - create a new session
-- `/stop` - stop the current task
+- `/abort` - stop the current task
 - `/sessions` - show and switch recent sessions
 - `/projects` - show and switch projects
 - `/rename` - rename current session
@@ -111,9 +111,9 @@ Interaction routing rules:
 
 - Only one interactive flow can be active at a time (inline menu, permission, question, rename, commands)
 - While an interaction is active, unrelated input is blocked with a contextual hint
-- Allowed utility commands during active interactions: `/help`, `/status`, `/stop`
+- Allowed utility commands during active interactions: `/help`, `/status`, `/abort`
 - Unknown slash commands return an explicit fallback message
-- Interaction flows do not expire automatically and wait for explicit completion (`answer`, `cancel`, `/stop`, reset/cleanup)
+- Interaction flows do not expire automatically and wait for explicit completion (`answer`, `cancel`, `/abort`, reset/cleanup)
 
 Model picker behavior:
 
@@ -127,7 +127,7 @@ Model picker behavior:
 - [x] Single-user access control by allowed Telegram user ID
 - [x] OpenCode server control from Telegram (`/status`, `/opencode_start`, `/opencode_stop`)
 - [x] Project and session management from Telegram (`/projects`, `/sessions`, `/new`)
-- [x] Remote task execution and interruption support (`/stop`)
+- [x] Remote task execution and interruption support (`/abort`)
 - [x] Telegram-friendly result delivery, including sending generated code/files when needed
 - [x] Interactive question and permission handling directly in chat (buttons + custom answers)
 - [x] Live pinned session status in chat (project, model, context usage, changed files)

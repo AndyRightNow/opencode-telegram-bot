@@ -62,13 +62,13 @@ export const es: I18nDictionary = {
     "🔴 No se pudo crear la sesión. Prueba /new o revisa el estado del servidor con /status.",
   "bot.session_created": "✅ Sesión creada: {title}",
   "bot.session_busy":
-    "⏳ El agente ya está ejecutando una tarea. Espera a que termine o usa /stop para interrumpir la ejecución actual.",
+    "⏳ El agente ya está ejecutando una tarea. Espera a que termine o usa /abort para interrumpir la ejecución actual.",
   "bot.session_reset_project_mismatch":
     "⚠️ La sesión activa no coincide con el proyecto seleccionado, así que se reinició. Usa /sessions para elegir una o /new para crear una nueva.",
   "bot.prompt_send_error": "No se pudo enviar la solicitud a OpenCode.",
   "bot.session_error": "🔴 OpenCode devolvió un error: {message}",
   "bot.session_retry":
-    "🔁 {message}\n\nEl proveedor devuelve el mismo error en intentos repetidos. Usa /stop para detenerlo.",
+    "🔁 {message}\n\nEl proveedor devuelve el mismo error en intentos repetidos. Usa /abort para detenerlo.",
   "bot.unknown_command":
     "⚠️ Comando desconocido: {command}. Usa /help para ver los comandos disponibles.",
   "bot.photo_downloading": "⏳ Descargando foto...",
@@ -150,7 +150,7 @@ export const es: I18nDictionary = {
   "stop.in_progress":
     "🛑 Flujo de eventos detenido; enviando señal de aborto...\n\nEsperando a que el agente se detenga.",
   "stop.warn_unconfirmed":
-    "⚠️ Flujo de eventos detenido, pero el servidor no confirmó el aborto.\n\nRevisa /status y vuelve a intentar /stop en unos segundos.",
+    "⚠️ Flujo de eventos detenido, pero el servidor no confirmó el aborto.\n\nRevisa /status y vuelve a intentar /abort en unos segundos.",
   "stop.warn_maybe_finished":
     "⚠️ Flujo de eventos detenido, pero el agente podría haber terminado ya.",
   "stop.success":
@@ -158,11 +158,11 @@ export const es: I18nDictionary = {
   "stop.warn_still_busy":
     "⚠️ Señal enviada, pero el agente sigue ocupado.\n\nEl flujo de eventos ya está deshabilitado, así que no se enviarán mensajes intermedios.",
   "stop.warn_timeout":
-    "⚠️ Tiempo de espera agotado al solicitar el aborto.\n\nEl flujo de eventos ya está deshabilitado; vuelve a intentar /stop en unos segundos.",
+    "⚠️ Tiempo de espera agotado al solicitar el aborto.\n\nEl flujo de eventos ya está deshabilitado; vuelve a intentar /abort en unos segundos.",
   "stop.warn_local_only":
     "⚠️ Flujo de eventos detenido localmente, pero el aborto en el servidor falló.",
   "stop.error":
-    "🔴 No se pudo detener la acción.\n\nEl flujo de eventos está detenido; prueba /stop otra vez.",
+    "🔴 No se pudo detener la acción.\n\nEl flujo de eventos está detenido; prueba /abort otra vez.",
 
   "opencode_start.already_running_managed":
     "⚠️ OpenCode Server ya está en ejecución\n\nPID: {pid}\nTiempo activo: {seconds} segundos",

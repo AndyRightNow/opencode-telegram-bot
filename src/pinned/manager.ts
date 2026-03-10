@@ -170,7 +170,7 @@ class PinnedMessageManager {
    */
   async onMessageComplete(tokens: TokensInfo): Promise<void> {
     // Ensure context limit is available even if session was restored
-    // without a fresh onSessionChange call (for example after /stop + continue).
+    // without a fresh onSessionChange call (for example after /abort + continue).
     if (this.getContextLimit() === 0) {
       await this.fetchContextLimit();
     }

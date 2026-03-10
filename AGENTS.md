@@ -42,7 +42,7 @@ Functional requirements, features, and development status are in [PRODUCT.md](./
 2. **OpenCode Client Layer** - SDK wrapper and SSE event subscription
 3. **State Managers** - session/project/settings/question/permission/model/agent/variant/keyboard/pinned
 4. **Summary Pipeline** - event aggregation and Telegram-friendly formatting
-5. **Process Manager** - local OpenCode server process start/stop/status
+5. **Process Manager** - local OpenCode server process start, stop, and status
 6. **Runtime/CLI Layer** - runtime mode, config bootstrap, CLI commands
 7. **I18n Layer** - localized bot and CLI strings to multiple languages
 
@@ -117,7 +117,7 @@ The command list is centralized in `src/bot/commands/definitions.ts`.
 const COMMAND_DEFINITIONS: BotCommandI18nDefinition[] = [
   { command: "status", descriptionKey: "cmd.description.status" },
   { command: "new", descriptionKey: "cmd.description.new" },
-  { command: "stop", descriptionKey: "cmd.description.stop" },
+  { command: "abort", descriptionKey: "cmd.description.stop" },
   { command: "sessions", descriptionKey: "cmd.description.sessions" },
   { command: "projects", descriptionKey: "cmd.description.projects" },
   { command: "rename", descriptionKey: "cmd.description.rename" },

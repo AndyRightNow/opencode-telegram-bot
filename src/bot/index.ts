@@ -20,7 +20,7 @@ import {
 import { sessionsCommand, handleSessionSelect } from "./commands/sessions.js";
 import { newCommand } from "./commands/new.js";
 import { projectsCommand, handleProjectSelect } from "./commands/projects.js";
-import { stopCommand } from "./commands/stop.js";
+import { abortCommand } from "./commands/abort.js";
 import { opencodeStartCommand } from "./commands/opencode-start.js";
 import { opencodeStopCommand } from "./commands/opencode-stop.js";
 import { renameCommand, handleRenameCancel, handleRenameTextAnswer } from "./commands/rename.js";
@@ -477,7 +477,9 @@ async function ensureEventSubscription(directory: string): Promise<void> {
 export function createBot(): Bot<Context> {
   clearAllInteractionState("bot_startup");
   toolMessageBatcher.setIntervalSeconds(config.bot.serviceMessagesIntervalSec);
-  logger.debug(`[ToolBatcher] Service messages interval: ${config.bot.serviceMessagesIntervalSec}s`);
+  logger.debug(
+    `[ToolBatcher] Service messages interval: ${config.bot.serviceMessagesIntervalSec}s`,
+  );
 
   const botOptions: ConstructorParameters<typeof Bot<Context>>[1] = {};
 
@@ -562,7 +564,7 @@ export function createBot(): Bot<Context> {
   bot.command("projects", projectsCommand);
   bot.command("sessions", sessionsCommand);
   bot.command("new", newCommand);
-  bot.command("stop", stopCommand);
+  bot.command("abort", abortCommand);
   bot.command("rename", renameCommand);
   bot.command("commands", commandsCommand);
 

@@ -51,12 +51,12 @@ export const zh: I18nDictionary = {
   "bot.creating_session": "🔄 正在创建新会话...",
   "bot.create_session_error": "🔴 创建会话失败。请重试 /new，或使用 /status 检查服务器状态。",
   "bot.session_created": "✅ 会话已创建：{title}",
-  "bot.session_busy": "⏳ 代理正在执行任务。请等待完成，或使用 /stop 中断当前运行。",
+  "bot.session_busy": "⏳ 代理正在执行任务。请等待完成，或使用 /abort 中断当前运行。",
   "bot.session_reset_project_mismatch":
     "⚠️ 活动会话与所选项目不匹配，因此已重置。使用 /sessions 选择一个会话，或 /new 创建新会话。",
   "bot.prompt_send_error": "向 OpenCode 发送请求失败。",
   "bot.session_error": "🔴 OpenCode 返回错误：{message}",
-  "bot.session_retry": "🔁 {message}\n\n提供方在重复重试时持续返回同一错误。使用 /stop 可停止。",
+  "bot.session_retry": "🔁 {message}\n\n提供方在重复重试时持续返回同一错误。使用 /abort 可停止。",
   "bot.unknown_command": "⚠️ 未知命令：{command}。使用 /help 查看可用命令。",
   "bot.photo_downloading": "⏳ 正在下载照片...",
   "bot.photo_too_large": "⚠️ 照片过大（最大 {maxSizeMb}MB）",
@@ -127,13 +127,13 @@ export const zh: I18nDictionary = {
   "stop.no_active_session": "🛑 代理尚未启动\n\n使用 /new 创建会话，或通过 /sessions 选择一个。",
   "stop.in_progress": "🛑 已停止事件流，正在发送中止信号...\n\n等待代理停止。",
   "stop.warn_unconfirmed":
-    "⚠️ 事件流已停止，但服务器未确认中止。\n\n检查 /status，并在几秒后重试 /stop。",
+    "⚠️ 事件流已停止，但服务器未确认中止。\n\n检查 /status，并在几秒后重试 /abort。",
   "stop.warn_maybe_finished": "⚠️ 事件流已停止，但代理可能已完成。",
   "stop.success": "✅ 代理操作已中断。本次运行的后续消息将不再发送。",
   "stop.warn_still_busy": "⚠️ 信号已发送，但代理仍在忙。\n\n事件流已禁用，因此不会发送中间消息。",
-  "stop.warn_timeout": "⚠️ 中止请求超时。\n\n事件流已禁用，请在几秒后重试 /stop。",
+  "stop.warn_timeout": "⚠️ 中止请求超时。\n\n事件流已禁用，请在几秒后重试 /abort。",
   "stop.warn_local_only": "⚠️ 已在本地停止事件流，但服务器端中止失败。",
-  "stop.error": "🔴 停止操作失败。\n\n事件流已停止，请再次尝试 /stop。",
+  "stop.error": "🔴 停止操作失败。\n\n事件流已停止，请再次尝试 /abort。",
 
   "opencode_start.already_running_managed":
     "⚠️ OpenCode 服务器已在运行\n\nPID：{pid}\n运行时间：{seconds} 秒",
