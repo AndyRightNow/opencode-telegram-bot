@@ -122,6 +122,15 @@ describe("summary/formatter", () => {
     expect(parts[0]).toContain("🔲 Numbered task");
   });
 
+  it("keeps malformed emphasis content when formatting markdown", () => {
+    const parts = formatSummaryWithMode("*text: *value**", "markdown");
+
+    expect(parts).toHaveLength(1);
+    expect(parts[0].length).toBeGreaterThan(0);
+    expect(parts[0]).toContain("text");
+    expect(parts[0]).toContain("value");
+  });
+
   it("formats todowrite tool metadata", () => {
     const text = formatToolInfo({
       sessionId: "s1",

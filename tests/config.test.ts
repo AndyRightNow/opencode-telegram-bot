@@ -70,6 +70,14 @@ describe("config boolean env parsing", () => {
     expect(config.bot.messageFormatMode).toBe("markdown");
   });
 
+  it("parses raw message format mode", async () => {
+    vi.stubEnv("MESSAGE_FORMAT_MODE", "raw");
+
+    const config = await loadConfig();
+
+    expect(config.bot.messageFormatMode).toBe("raw");
+  });
+
   it("falls back to markdown on invalid message format mode", async () => {
     vi.stubEnv("MESSAGE_FORMAT_MODE", "html");
 

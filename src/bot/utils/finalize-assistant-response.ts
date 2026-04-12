@@ -1,6 +1,6 @@
 import type { StreamingMessagePayload, ResponseStreamer } from "../streaming/response-streamer.js";
-import type { TelegramTextFormat } from "./telegram-text.js";
 import { logger } from "../../utils/logger.js";
+import type { TelegramRenderedPart } from "../../telegram/render/types.js";
 
 interface FinalizeAssistantResponseOptions {
   sessionId: string;
@@ -9,20 +9,16 @@ interface FinalizeAssistantResponseOptions {
   responseStreamer: Pick<ResponseStreamer, "complete">;
   flushPendingServiceMessages: () => Promise<void>;
   prepareStreamingPayload: (messageText: string) => StreamingMessagePayload | null;
-  formatSummary: (messageText: string) => string[];
-  formatRawSummary: (messageText: string) => string[];
-  resolveFormat: () => TelegramTextFormat;
+  renderFinalParts: (messageText: string) => TelegramRenderedPart[];
   getReplyKeyboard: () => unknown;
-  sendText: (
-    text: string,
-    rawFallbackText: string | undefined,
+  sendRenderedPart: (
+    part: TelegramRenderedPart,
     options:
       | {
           reply_markup?: unknown;
           disable_notification?: boolean;
         }
       | undefined,
-    format: TelegramTextFormat,
   ) => Promise<void>;
 }
 
@@ -33,12 +29,15 @@ export async function finalizeAssistantResponse({
   responseStreamer,
   flushPendingServiceMessages,
   prepareStreamingPayload,
-  formatSummary,
-  formatRawSummary,
-  resolveFormat,
+  renderFinalParts,
   getReplyKeyboard,
-  sendText,
+  sendRenderedPart,
 }: FinalizeAssistantResponseOptions): Promise<boolean> {
+  logger.debug(
+    `[FinalizeResponse] Final assistant raw text received: session=${sessionId}, message=${messageId}`,
+    messageText,
+  );
+
   const keyboard = getReplyKeyboard();
   const replyOptions = keyboard ? { reply_markup: keyboard } : undefined;
   const silentReplyOptions = {
@@ -70,14 +69,10 @@ export async function finalizeAssistantResponse({
     return true;
   }
 
-  const parts = formatSummary(messageText);
-  const rawParts = formatRawSummary(messageText);
-  const format = resolveFormat();
+  const parts = renderFinalParts(messageText);
 
-  for (let partIndex = 0; partIndex < parts.length; partIndex++) {
-    const part = parts[partIndex];
-    const rawFallbackText = rawParts[partIndex];
-    await sendText(part, rawFallbackText, silentReplyOptions, format);
+  for (const part of parts) {
+    await sendRenderedPart(part, silentReplyOptions);
   }
 
   return false;

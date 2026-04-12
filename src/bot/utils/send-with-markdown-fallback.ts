@@ -176,10 +176,7 @@ export async function sendMessageWithMarkdownFallback({
     if (parseMode === "MarkdownV2") {
       const escapedText = escapeTelegramMarkdownV2(text);
       if (escapedText !== text) {
-        logger.warn(
-          "[Bot] Markdown parse failed, retrying assistant message with escaped MarkdownV2",
-          error,
-        );
+        logger.warn("[Bot] Markdown parse failed, retrying message with escaped MarkdownV2", error);
 
         try {
           return await api.sendMessage(chatId, escapedText, markdownOptions);
@@ -189,7 +186,7 @@ export async function sendMessageWithMarkdownFallback({
           }
 
           logger.warn(
-            "[Bot] Escaped Markdown parse failed, retrying assistant message in raw mode",
+            "[Bot] Escaped Markdown parse failed, retrying message in raw mode",
             escapedError,
           );
           return api.sendMessage(chatId, fallbackText, stripMarkdownFormattingOptions(options));
@@ -197,7 +194,7 @@ export async function sendMessageWithMarkdownFallback({
       }
     }
 
-    logger.warn("[Bot] Markdown parse failed, retrying assistant message in raw mode", error);
+    logger.warn("[Bot] Markdown parse failed, retrying message in raw mode", error);
     return api.sendMessage(chatId, fallbackText, stripMarkdownFormattingOptions(options));
   }
 }

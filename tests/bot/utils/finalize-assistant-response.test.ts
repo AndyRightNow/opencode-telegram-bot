@@ -7,7 +7,7 @@ describe("bot/utils/finalize-assistant-response", () => {
       complete: vi.fn().mockResolvedValue({ streamed: false, telegramMessageIds: [] }),
     };
     const flushPendingServiceMessages = vi.fn().mockResolvedValue(undefined);
-    const sendText = vi.fn().mockResolvedValue(undefined);
+    const sendRenderedPart = vi.fn().mockResolvedValue(undefined);
     const keyboard = { keyboard: [[{ text: "A" }]] };
 
     await finalizeAssistantResponse({
@@ -16,35 +16,63 @@ describe("bot/utils/finalize-assistant-response", () => {
       messageText: "final reply",
       responseStreamer,
       flushPendingServiceMessages,
-      prepareStreamingPayload: vi.fn(() => ({ parts: ["final reply"], format: "raw" as const })),
-      formatSummary: vi.fn(() => ["part 1", "part 2"]),
-      formatRawSummary: vi.fn(() => ["part 1", "part 2"]),
-      resolveFormat: vi.fn(() => "markdown_v2" as const),
+      prepareStreamingPayload: vi.fn(() => ({
+        parts: [
+          {
+            text: "final reply",
+            fallbackText: "final reply",
+            source: "plain" as const,
+          },
+        ],
+      })),
+      renderFinalParts: vi.fn(() => [
+        {
+          text: "part 1",
+          entities: [{ type: "bold", offset: 0, length: 6 }],
+          fallbackText: "part 1",
+          source: "entities" as const,
+        },
+        {
+          text: "part 2",
+          fallbackText: "part 2",
+          source: "plain" as const,
+        },
+      ]),
       getReplyKeyboard: vi.fn(() => keyboard),
-      sendText,
+      sendRenderedPart,
     });
 
     expect(responseStreamer.complete).toHaveBeenCalledWith("s1", "m1", {
-      parts: ["final reply"],
-      format: "raw",
+      parts: [
+        {
+          text: "final reply",
+          fallbackText: "final reply",
+          source: "plain",
+        },
+      ],
       sendOptions: { disable_notification: true, reply_markup: keyboard },
       editOptions: undefined,
     });
     expect(flushPendingServiceMessages).toHaveBeenCalledTimes(1);
-    expect(sendText).toHaveBeenCalledTimes(2);
-    expect(sendText).toHaveBeenNthCalledWith(
+    expect(sendRenderedPart).toHaveBeenCalledTimes(2);
+    expect(sendRenderedPart).toHaveBeenNthCalledWith(
       1,
-      "part 1",
-      "part 1",
+      {
+        text: "part 1",
+        entities: [{ type: "bold", offset: 0, length: 6 }],
+        fallbackText: "part 1",
+        source: "entities",
+      },
       { disable_notification: true, reply_markup: keyboard },
-      "markdown_v2",
     );
-    expect(sendText).toHaveBeenNthCalledWith(
+    expect(sendRenderedPart).toHaveBeenNthCalledWith(
       2,
-      "part 2",
-      "part 2",
+      {
+        text: "part 2",
+        fallbackText: "part 2",
+        source: "plain",
+      },
       { disable_notification: true, reply_markup: keyboard },
-      "markdown_v2",
     );
   });
 
@@ -53,8 +81,16 @@ describe("bot/utils/finalize-assistant-response", () => {
       complete: vi.fn().mockResolvedValue({ streamed: true, telegramMessageIds: [101] }),
     };
     const flushPendingServiceMessages = vi.fn().mockResolvedValue(undefined);
-    const sendText = vi.fn().mockResolvedValue(undefined);
-    const prepareStreamingPayload = vi.fn(() => ({ parts: ["reply"], format: "raw" as const }));
+    const sendRenderedPart = vi.fn().mockResolvedValue(undefined);
+    const prepareStreamingPayload = vi.fn(() => ({
+      parts: [
+        {
+          text: "reply",
+          fallbackText: "reply",
+          source: "plain" as const,
+        },
+      ],
+    }));
     const keyboard = { keyboard: [[{ text: "ctx" }]] };
 
     await finalizeAssistantResponse({
@@ -64,30 +100,47 @@ describe("bot/utils/finalize-assistant-response", () => {
       responseStreamer,
       flushPendingServiceMessages,
       prepareStreamingPayload,
-      formatSummary: vi.fn(() => ["reply"]),
-      formatRawSummary: vi.fn(() => ["reply"]),
-      resolveFormat: vi.fn(() => "raw" as const),
+      renderFinalParts: vi.fn(() => [
+        {
+          text: "reply",
+          fallbackText: "reply",
+          source: "plain" as const,
+        },
+      ]),
       getReplyKeyboard: vi.fn(() => keyboard),
-      sendText,
+      sendRenderedPart,
     });
 
     expect(responseStreamer.complete).toHaveBeenCalledWith("s1", "m1", {
-      parts: ["reply"],
-      format: "raw",
+      parts: [
+        {
+          text: "reply",
+          fallbackText: "reply",
+          source: "plain",
+        },
+      ],
       sendOptions: { disable_notification: true, reply_markup: keyboard },
       editOptions: undefined,
     });
     expect(flushPendingServiceMessages).toHaveBeenCalledTimes(1);
-    expect(sendText).not.toHaveBeenCalled();
+    expect(sendRenderedPart).not.toHaveBeenCalled();
   });
 
-  it("still sends with keyboard when streamer reports not streamed", async () => {
+  it("still sends rendered parts with keyboard when streamer reports not streamed", async () => {
     const responseStreamer = {
       complete: vi.fn().mockResolvedValue({ streamed: false, telegramMessageIds: [] }),
     };
     const flushPendingServiceMessages = vi.fn().mockResolvedValue(undefined);
-    const sendText = vi.fn().mockResolvedValue(undefined);
-    const prepareStreamingPayload = vi.fn(() => ({ parts: ["reply"], format: "raw" as const }));
+    const sendRenderedPart = vi.fn().mockResolvedValue(undefined);
+    const prepareStreamingPayload = vi.fn(() => ({
+      parts: [
+        {
+          text: "reply",
+          fallbackText: "reply",
+          source: "plain" as const,
+        },
+      ],
+    }));
 
     await finalizeAssistantResponse({
       sessionId: "s1",
@@ -96,14 +149,25 @@ describe("bot/utils/finalize-assistant-response", () => {
       responseStreamer,
       flushPendingServiceMessages,
       prepareStreamingPayload,
-      formatSummary: vi.fn(() => ["reply"]),
-      formatRawSummary: vi.fn(() => ["reply"]),
-      resolveFormat: vi.fn(() => "raw" as const),
+      renderFinalParts: vi.fn(() => [
+        {
+          text: "reply",
+          fallbackText: "reply",
+          source: "plain" as const,
+        },
+      ]),
       getReplyKeyboard: vi.fn(() => undefined),
-      sendText,
+      sendRenderedPart,
     });
 
-    expect(sendText).toHaveBeenCalledTimes(1);
-    expect(sendText).toHaveBeenCalledWith("reply", "reply", { disable_notification: true }, "raw");
+    expect(sendRenderedPart).toHaveBeenCalledTimes(1);
+    expect(sendRenderedPart).toHaveBeenCalledWith(
+      {
+        text: "reply",
+        fallbackText: "reply",
+        source: "plain",
+      },
+      { disable_notification: true },
+    );
   });
 });

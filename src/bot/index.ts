@@ -50,12 +50,7 @@ import { clearAllInteractionState } from "../interaction/cleanup.js";
 import { keyboardManager } from "../keyboard/manager.js";
 import { subscribeToEvents } from "../opencode/events.js";
 import { summaryAggregator } from "../summary/aggregator.js";
-import {
-  formatSummary,
-  formatSummaryWithMode,
-  formatToolInfo,
-  getAssistantParseMode,
-} from "../summary/formatter.js";
+import { formatToolInfo } from "../summary/formatter.js";
 import { renderSubagentCards } from "../summary/subagent-formatter.js";
 import { ToolMessageBatcher } from "../summary/tool-message-batcher.js";
 import { getCurrentSession } from "../session/manager.js";
@@ -72,7 +67,12 @@ import { downloadTelegramFile, toDataUri } from "./utils/file-download.js";
 import { finalizeAssistantResponse } from "./utils/finalize-assistant-response.js";
 import { sendTtsResponseForSession } from "./utils/send-tts-response.js";
 import { deliverThinkingMessage } from "./utils/thinking-message.js";
-import { sendBotText } from "./utils/telegram-text.js";
+import {
+  editRenderedBotPart,
+  getTelegramRenderedPartSignature,
+  sendBotText,
+  sendRenderedBotPart,
+} from "./utils/telegram-text.js";
 import { formatAssistantRunFooter } from "./utils/assistant-run-footer.js";
 import { getModelCapabilities, supportsInput } from "../model/capabilities.js";
 import { getStoredModel } from "../model/manager.js";
@@ -84,9 +84,10 @@ import { ResponseStreamer } from "./streaming/response-streamer.js";
 import type { StreamingMessagePayload } from "./streaming/response-streamer.js";
 import { ToolCallStreamer, type ToolStreamKey } from "./streaming/tool-call-streamer.js";
 import {
-  editMessageWithMarkdownFallback,
-  sendMessageWithMarkdownFallback,
-} from "./utils/send-with-markdown-fallback.js";
+  prepareAssistantFinalStreamingPayload,
+  prepareAssistantStreamingPayload,
+  renderAssistantFinalPartsSafe,
+} from "./utils/assistant-rendering.js";
 
 let botInstance: Bot<Context> | null = null;
 let chatIdInstance: number | null = null;
@@ -124,32 +125,11 @@ function prepareDocumentCaption(caption: string): string {
 }
 
 function prepareStreamingPayload(messageText: string): StreamingMessagePayload | null {
-  const parts = formatSummaryWithMode(messageText, "raw", RESPONSE_STREAM_TEXT_LIMIT);
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return {
-    parts,
-    format: "raw",
-  };
+  return prepareAssistantStreamingPayload(messageText, RESPONSE_STREAM_TEXT_LIMIT);
 }
 
 function prepareFinalStreamingPayload(messageText: string): StreamingMessagePayload | null {
-  const format = getAssistantParseMode() === "MarkdownV2" ? "markdown_v2" : "raw";
-  const parts = formatSummaryWithMode(
-    messageText,
-    format === "markdown_v2" ? "markdown" : "raw",
-    RESPONSE_STREAM_TEXT_LIMIT,
-  );
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return {
-    parts,
-    format,
-  };
+  return prepareAssistantFinalStreamingPayload(messageText, RESPONSE_STREAM_TEXT_LIMIT);
 }
 
 function enqueueSessionCompletionTask(sessionId: string, task: () => Promise<void>): Promise<void> {
@@ -220,43 +200,38 @@ const toolMessageBatcher = new ToolMessageBatcher({
 
 const responseStreamer = new ResponseStreamer({
   throttleMs: RESPONSE_STREAM_THROTTLE_MS,
-  sendText: async (text, format, options) => {
+  sendPart: async (part, options) => {
     if (!botInstance || !chatIdInstance || chatIdInstance <= 0) {
       throw new Error("Bot context missing for streamed send");
     }
 
-    const parseMode = format === "markdown_v2" ? "MarkdownV2" : undefined;
-    const sentMessage = await sendMessageWithMarkdownFallback({
+    return sendRenderedBotPart({
       api: botInstance.api,
       chatId: chatIdInstance,
-      text,
+      part,
       options,
-      parseMode,
     });
-
-    return sentMessage.message_id;
   },
-  editText: async (messageId, text, format, options) => {
+  editPart: async (messageId, part, options) => {
     if (!botInstance || !chatIdInstance || chatIdInstance <= 0) {
       throw new Error("Bot context missing for streamed edit");
     }
 
-    const parseMode = format === "markdown_v2" ? "MarkdownV2" : undefined;
-
     try {
-      await editMessageWithMarkdownFallback({
+      return await editRenderedBotPart({
         api: botInstance.api,
         chatId: chatIdInstance,
         messageId,
-        text,
+        part,
         options,
-        parseMode,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
       if (errorMessage.includes("message is not modified")) {
-        return;
+        return {
+          deliveredSignature: getTelegramRenderedPartSignature(part),
+        };
       }
 
       throw error;
@@ -464,18 +439,14 @@ async function ensureEventSubscription(directory: string): Promise<void> {
               toolCallStreamer.breakSession(sessionId, "assistant_message_completed"),
             ]).then(() => undefined),
           prepareStreamingPayload: prepareFinalStreamingPayload,
-          formatSummary,
-          formatRawSummary: (text) => formatSummaryWithMode(text, "raw"),
-          resolveFormat: () => (getAssistantParseMode() === "MarkdownV2" ? "markdown_v2" : "raw"),
+          renderFinalParts: (text) => renderAssistantFinalPartsSafe(text),
           getReplyKeyboard: getCurrentReplyKeyboard,
-          sendText: async (text, rawFallbackText, options, format) => {
-            await sendBotText({
+          sendRenderedPart: async (part, options) => {
+            await sendRenderedBotPart({
               api: botApi,
               chatId,
-              text,
-              rawFallbackText,
+              part,
               options: options as Parameters<typeof sendBotText>[0]["options"],
-              format,
             });
           },
         });

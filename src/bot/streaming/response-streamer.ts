@@ -1,5 +1,6 @@
 import type { Api, RawApi } from "grammy";
 import { logger } from "../../utils/logger.js";
+import type { TelegramRenderedPart } from "../../telegram/render/types.js";
 
 type SendMessageApi = Pick<Api<RawApi>, "sendMessage">;
 type EditMessageApi = Pick<Api<RawApi>, "editMessageText">;
@@ -7,11 +8,8 @@ type EditMessageApi = Pick<Api<RawApi>, "editMessageText">;
 type TelegramSendMessageOptions = Parameters<SendMessageApi["sendMessage"]>[2];
 type TelegramEditMessageOptions = Parameters<EditMessageApi["editMessageText"]>[3];
 
-export type StreamingMessageFormat = "raw" | "markdown_v2";
-
 export interface StreamingMessagePayload {
-  parts: string[];
-  format: StreamingMessageFormat;
+  parts: TelegramRenderedPart[];
   sendOptions?: TelegramSendMessageOptions;
   editOptions?: TelegramEditMessageOptions;
 }
@@ -27,17 +25,15 @@ interface ResponseStreamerCompleteOptions {
 
 interface ResponseStreamerOptions {
   throttleMs: number;
-  sendText: (
-    text: string,
-    format: StreamingMessageFormat,
+  sendPart: (
+    part: TelegramRenderedPart,
     options?: TelegramSendMessageOptions,
-  ) => Promise<number>;
-  editText: (
+  ) => Promise<{ messageId: number; deliveredSignature: string }>;
+  editPart: (
     messageId: number,
-    text: string,
-    format: StreamingMessageFormat,
+    part: TelegramRenderedPart,
     options?: TelegramEditMessageOptions,
-  ) => Promise<void>;
+  ) => Promise<{ deliveredSignature: string }>;
   deleteText: (messageId: number) => Promise<void>;
 }
 
@@ -60,17 +56,24 @@ function buildStateKey(sessionId: string, messageId: string): string {
   return `${sessionId}:${messageId}`;
 }
 
+function clonePart(part: TelegramRenderedPart): TelegramRenderedPart {
+  return {
+    text: part.text,
+    entities: part.entities ? [...part.entities] : undefined,
+    fallbackText: part.fallbackText,
+    source: part.source,
+  };
+}
+
 function normalizePayload(payload: StreamingMessagePayload): StreamingMessagePayload | null {
-  const normalizedParts = payload.parts
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
+  const normalizedParts = payload.parts.map(clonePart).filter((part) => part.text.length > 0);
   if (normalizedParts.length === 0) {
+    logger.debug("[ResponseStreamer] Dropped empty streaming payload after normalization");
     return null;
   }
 
   return {
     parts: normalizedParts,
-    format: payload.format,
     sendOptions: payload.sendOptions,
     editOptions: payload.editOptions,
   };
@@ -103,8 +106,8 @@ function getRetryAfterMs(error: unknown): number | null {
   return seconds * 1000;
 }
 
-function createSignature(text: string, format: StreamingMessageFormat): string {
-  return `${format}\n${text}`;
+function createSignature(part: Pick<TelegramRenderedPart, "text" | "entities">): string {
+  return `${part.text}\n${JSON.stringify(part.entities ?? null)}`;
 }
 
 function delay(ms: number): Promise<void> {
@@ -115,15 +118,15 @@ function delay(ms: number): Promise<void> {
 
 export class ResponseStreamer {
   private readonly throttleMs: number;
-  private readonly sendText: ResponseStreamerOptions["sendText"];
-  private readonly editText: ResponseStreamerOptions["editText"];
+  private readonly sendPart: ResponseStreamerOptions["sendPart"];
+  private readonly editPart: ResponseStreamerOptions["editPart"];
   private readonly deleteText: ResponseStreamerOptions["deleteText"];
   private readonly states: Map<string, StreamState> = new Map();
 
   constructor(options: ResponseStreamerOptions) {
     this.throttleMs = Math.max(0, Math.floor(options.throttleMs));
-    this.sendText = options.sendText;
-    this.editText = options.editText;
+    this.sendPart = options.sendPart;
+    this.editPart = options.editPart;
     this.deleteText = options.deleteText;
   }
 
@@ -152,6 +155,9 @@ export class ResponseStreamer {
 
     const state = this.states.get(buildStateKey(sessionId, messageId));
     if (!state) {
+      logger.debug(
+        `[ResponseStreamer] Complete skipped, no active stream state: session=${sessionId}, message=${messageId}`,
+      );
       return notStreamed;
     }
 
@@ -174,6 +180,9 @@ export class ResponseStreamer {
     }
 
     if (state.telegramMessageIds.length === 0) {
+      logger.debug(
+        `[ResponseStreamer] Complete returned not streamed: session=${sessionId}, message=${messageId}, reason=no_visible_partials`,
+      );
       this.cancelState(state);
       this.states.delete(state.key);
       return notStreamed;
@@ -324,12 +333,15 @@ export class ResponseStreamer {
         return state.telegramMessageIds.length > 0;
       }
 
-      const targetSignatures = payload.parts.map((part) => createSignature(part, payload.format));
+      const targetSignatures = payload.parts.map((part) => createSignature(part));
       const unchanged =
         targetSignatures.length === state.lastSentSignatures.length &&
         targetSignatures.every((signature, index) => signature === state.lastSentSignatures[index]);
 
       if (unchanged) {
+        logger.debug(
+          `[ResponseStreamer] Skipped unchanged payload: session=${state.sessionId}, message=${state.messageId}, parts=${payload.parts.length}`,
+        );
         return state.telegramMessageIds.length > 0;
       }
 
@@ -407,7 +419,7 @@ export class ResponseStreamer {
     targetSignatures: string[],
   ): Promise<void> {
     for (let index = 0; index < payload.parts.length; index++) {
-      const text = payload.parts[index];
+      const part = payload.parts[index];
       const nextSignature = targetSignatures[index];
       const currentMessageId = state.telegramMessageIds[index];
 
@@ -416,14 +428,14 @@ export class ResponseStreamer {
           continue;
         }
 
-        await this.editText(currentMessageId, text, payload.format, payload.editOptions);
-        state.lastSentSignatures[index] = nextSignature;
+        const result = await this.editPart(currentMessageId, part, payload.editOptions);
+        state.lastSentSignatures[index] = result.deliveredSignature;
         continue;
       }
 
-      const messageId = await this.sendText(text, payload.format, payload.sendOptions);
-      state.telegramMessageIds[index] = messageId;
-      state.lastSentSignatures[index] = nextSignature;
+      const result = await this.sendPart(part, payload.sendOptions);
+      state.telegramMessageIds[index] = result.messageId;
+      state.lastSentSignatures[index] = result.deliveredSignature;
     }
 
     for (let index = state.telegramMessageIds.length - 1; index >= payload.parts.length; index--) {
