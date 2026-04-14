@@ -99,6 +99,8 @@ opencode-telegram stop
 
 > Built-in daemon mode is intended for standalone npm installs without an external supervisor. For `systemd`, `pm2`, or Docker, keep using `opencode-telegram start` without `--daemon`.
 
+For Linux `systemd` setup, see [`docs/LINUX_SYSTEMD_SETUP.md`](./docs/LINUX_SYSTEMD_SETUP.md).
+
 To reconfigure at any time:
 
 ```bash
