@@ -106,6 +106,7 @@ Current command set:
 - `/tasklist` - browse and delete scheduled tasks
 - `/rename` - rename current session
 - `/commands` - browse and run custom commands (plus built-ins like `init` and `review`)
+- `/skills` - browse and run OpenCode skills
 - `/opencode_start` - start local OpenCode server
 - `/opencode_stop` - stop local OpenCode server
 - `/help` - show command help
@@ -116,7 +117,7 @@ Text messages (non-commands) are treated as prompts for OpenCode only when no bl
 
 Interaction routing rules:
 
-- Only one interactive flow can be active at a time (inline menu, permission, question, rename, commands)
+- Only one interactive flow can be active at a time (inline menu, permission, question, rename, commands, skills)
 - While an interaction is active, unrelated input is blocked with a contextual hint
 - Allowed utility commands during active interactions: `/help`, `/status`, `/abort`
 - Unknown slash commands return an explicit fallback message
@@ -140,6 +141,7 @@ Model picker behavior:
 - [x] Live pinned session status in chat (project, model, context usage, changed files)
 - [x] In-chat controls for model, agent, variant, and context
 - [x] Built-in and custom command catalog access (`/commands`)
+- [x] Skills catalog access (`/skills`)
 - [x] Scheduled task creation flow (`/task`)
 - [x] Scheduled task runtime execution with deferred Telegram delivery
 - [x] Scheduled task list and deletion flow (`/tasklist`)
@@ -152,17 +154,16 @@ Model picker behavior:
 - [x] Text file attachments support (send code/config/log files from Telegram to OpenCode)
 - [x] Voice/audio transcription via Whisper-compatible APIs (OpenAI/Groq/Together and compatible providers)
 - [x] Optional global audio replies with `/tts` via OpenAI-compatible APIs
+- [x] Dynamic subagent activity display during task execution
 - [x] Git worktree switching and main-project status display for git repositories (`/worktree`)
+- [x] Create new OpenCode projects directly from Telegram
 
 ## Current Task List
 
 Open tasks for upcoming iterations:
 
 - [ ] `/messages` command: browse session messages with fork/revert actions
-- [ ] `/skills` command: browse skills and choose one for usage
 - [ ] `/mcps` command: browse available MCP servers
-- [x] Dynamic subagent activity display during task execution
-- [x] Git worktree support
 - [ ] Docker runtime support and deployment guide
 - [ ] OpenCode server monitoring with automatic restart on stop/crash
 
@@ -170,6 +171,5 @@ Open tasks for upcoming iterations:
 
 Optional or longer-term enhancements:
 
-- [x] Create new OpenCode projects directly from Telegram
 - [ ] Add project file browsing helpers (for example, `ls` and `open` flows)
 - [ ] Add a bot settings command with in-chat UI

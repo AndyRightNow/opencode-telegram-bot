@@ -11,6 +11,7 @@ export const es: I18nDictionary = {
   "cmd.description.task": "Crear tarea programada",
   "cmd.description.tasklist": "Ver tareas programadas",
   "cmd.description.commands": "Comandos personalizados",
+  "cmd.description.skills": "Catálogo de skills",
   "cmd.description.opencode_start": "Iniciar servidor OpenCode",
   "cmd.description.opencode_stop": "Detener servidor OpenCode",
   "cmd.description.help": "Ayuda",
@@ -52,7 +53,7 @@ export const es: I18nDictionary = {
   "common.unknown_error": "error desconocido",
 
   "start.welcome":
-    "👋 ¡Bienvenido a OpenCode Telegram Bot!\n\nUsa los comandos:\n/projects — seleccionar proyecto\n/sessions — lista de sesiones\n/new — sesión nueva\n/task — tarea programada\n/tasklist — tareas programadas\n/status — estado\n/help — ayuda\n\nUsa los botones inferiores para elegir agente, modelo y variante.",
+    "👋 ¡Bienvenido a OpenCode Telegram Bot!\n\nUsa los comandos:\n/projects — seleccionar proyecto\n/sessions — lista de sesiones\n/new — sesión nueva\n/commands — comandos personalizados\n/skills — catálogo de skills\n/task — tarea programada\n/tasklist — tareas programadas\n/status — estado\n/help — ayuda\n\nUsa los botones inferiores para elegir agente, modelo y variante.",
   "help.keyboard_hint":
     "💡 Usa los botones inferiores para agente, modelo, variante y acciones de contexto.",
   "help.text":
@@ -442,6 +443,27 @@ export const es: I18nDictionary = {
   "commands.button.next_page": "Siguiente ➡️",
   "commands.page_empty_callback": "No hay comandos en esta página",
   "commands.page_load_error_callback":
+    "No se pudo cargar esta página. Por favor, inténtalo de nuevo.",
+
+  "skills.select": "Elige un skill de OpenCode:",
+  "skills.empty": "📭 No hay skills de OpenCode disponibles para este proyecto.",
+  "skills.fetch_error": "🔴 No se pudieron cargar los skills de OpenCode.",
+  "skills.no_description": "Sin descripción",
+  "skills.button.execute": "✅ Ejecutar",
+  "skills.button.cancel": "❌ Cancelar",
+  "skills.confirm":
+    "Confirma la ejecución del skill {skill}. Para ejecutarlo con argumentos, envía los argumentos como mensaje.",
+  "skills.inactive_callback": "Este menú de skills está inactivo",
+  "skills.cancelled_callback": "Cancelado",
+  "skills.execute_callback": "Usando skill...",
+  "skills.executing_prefix": "⚡ Usando skill:",
+  "skills.arguments_empty":
+    "⚠️ Los argumentos no pueden estar vacíos. Envía texto o toca Ejecutar.",
+  "skills.select_page": "Elige un skill de OpenCode (página {page}):",
+  "skills.button.prev_page": "⬅️ Anterior",
+  "skills.button.next_page": "Siguiente ➡️",
+  "skills.page_empty_callback": "No hay skills en esta página",
+  "skills.page_load_error_callback":
     "No se pudo cargar esta página. Por favor, inténtalo de nuevo.",
 
   "cmd.description.rename": "Renombrar la sesión actual",

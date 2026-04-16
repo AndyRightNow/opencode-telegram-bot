@@ -11,6 +11,7 @@ export const fr: I18nDictionary = {
   "cmd.description.task": "Créer une tâche planifiée",
   "cmd.description.tasklist": "Afficher les tâches planifiées",
   "cmd.description.commands": "Commandes personnalisées",
+  "cmd.description.skills": "Catalogue de skills",
   "cmd.description.opencode_start": "Démarrer le serveur OpenCode",
   "cmd.description.opencode_stop": "Arrêter le serveur OpenCode",
   "cmd.description.help": "Aide",
@@ -52,7 +53,7 @@ export const fr: I18nDictionary = {
   "common.unknown_error": "erreur inconnue",
 
   "start.welcome":
-    "👋 Bienvenue dans OpenCode Telegram Bot !\n\nUtilisez les commandes :\n/projects — sélectionner un projet\n/sessions — liste des sessions\n/new — nouvelle session\n/task — tâche planifiée\n/tasklist — tâches planifiées\n/status — statut\n/help — aide\n\nUtilisez les boutons du bas pour choisir l'agent, le modèle et la variante.",
+    "👋 Bienvenue dans OpenCode Telegram Bot !\n\nUtilisez les commandes :\n/projects — sélectionner un projet\n/sessions — liste des sessions\n/new — nouvelle session\n/commands — commandes personnalisées\n/skills — catalogue de skills\n/task — tâche planifiée\n/tasklist — tâches planifiées\n/status — statut\n/help — aide\n\nUtilisez les boutons du bas pour choisir l'agent, le modèle et la variante.",
   "help.keyboard_hint":
     "💡 Utilisez les boutons du bas pour l'agent, le modèle, la variante et les actions de contexte.",
   "help.text":
@@ -444,6 +445,26 @@ export const fr: I18nDictionary = {
   "commands.button.next_page": "Suivant ➡️",
   "commands.page_empty_callback": "Aucune commande sur cette page",
   "commands.page_load_error_callback": "Impossible de charger cette page. Veuillez réessayer.",
+
+  "skills.select": "Choisissez un skill OpenCode :",
+  "skills.empty": "📭 Aucun skill OpenCode n'est disponible pour ce projet.",
+  "skills.fetch_error": "🔴 Impossible de charger les skills OpenCode.",
+  "skills.no_description": "Aucune description",
+  "skills.button.execute": "✅ Exécuter",
+  "skills.button.cancel": "❌ Annuler",
+  "skills.confirm":
+    "Confirmez l'exécution du skill {skill}. Pour l'exécuter avec des arguments, envoyez-les dans un message.",
+  "skills.inactive_callback": "Ce menu de skills est inactif",
+  "skills.cancelled_callback": "Annulé",
+  "skills.execute_callback": "Utilisation du skill...",
+  "skills.executing_prefix": "⚡ Utilisation du skill :",
+  "skills.arguments_empty":
+    "⚠️ Les arguments ne peuvent pas être vides. Envoyez du texte ou appuyez sur Exécuter.",
+  "skills.select_page": "Choisissez un skill OpenCode (page {page}) :",
+  "skills.button.prev_page": "⬅️ Précédent",
+  "skills.button.next_page": "Suivant ➡️",
+  "skills.page_empty_callback": "Aucun skill sur cette page",
+  "skills.page_load_error_callback": "Impossible de charger cette page. Veuillez réessayer.",
 
   "cmd.description.rename": "Renommer la session actuelle",
 

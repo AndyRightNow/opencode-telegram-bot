@@ -33,6 +33,11 @@ import {
   handleCommandsCallback,
   handleCommandTextArguments,
 } from "./commands/commands.js";
+import {
+  skillsCommand,
+  handleSkillsCallback,
+  handleSkillTextArguments,
+} from "./commands/skills.js";
 import { ttsCommand } from "./commands/tts.js";
 import {
   handleQuestionCallback,
@@ -996,6 +1001,7 @@ export function createBot(): Bot<Context> {
   bot.command("tasklist", taskListCommand);
   bot.command("rename", renameCommand);
   bot.command("commands", commandsCommand);
+  bot.command("skills", skillsCommand);
 
   bot.on("message:text", unknownCommandMiddleware);
 
@@ -1028,9 +1034,10 @@ export function createBot(): Bot<Context> {
       const handledTaskList = await handleTaskListCallback(ctx);
       const handledRenameCancel = await handleRenameCancel(ctx);
       const handledCommands = await handleCommandsCallback(ctx, { bot, ensureEventSubscription });
+      const handledSkills = await handleSkillsCallback(ctx, { bot, ensureEventSubscription });
 
       logger.debug(
-        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, worktree=${handledWorktree}, open=${handledOpen}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, task=${handledTask}, taskList=${handledTaskList}, rename=${handledRenameCancel}, commands=${handledCommands}`,
+        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, worktree=${handledWorktree}, open=${handledOpen}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, task=${handledTask}, taskList=${handledTaskList}, rename=${handledRenameCancel}, commands=${handledCommands}, skills=${handledSkills}`,
       );
 
       if (
@@ -1048,7 +1055,8 @@ export function createBot(): Bot<Context> {
         !handledTask &&
         !handledTaskList &&
         !handledRenameCancel &&
-        !handledCommands
+        !handledCommands &&
+        !handledSkills
       ) {
         logger.debug("Unknown callback query:", ctx.callbackQuery?.data);
         await ctx.answerCallbackQuery({ text: t("callback.unknown_command") });
@@ -1282,6 +1290,11 @@ export function createBot(): Bot<Context> {
     const promptDeps = { bot, ensureEventSubscription };
     const handledCommandArgs = await handleCommandTextArguments(ctx, promptDeps);
     if (handledCommandArgs) {
+      return;
+    }
+
+    const handledSkillArgs = await handleSkillTextArguments(ctx, promptDeps);
+    if (handledSkillArgs) {
       return;
     }
 

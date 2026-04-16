@@ -31,6 +31,7 @@ Languages: English (`en`), Deutsch (`de`), Español (`es`), Français (`fr`), Р
 - **Agent modes** — switch between Plan and Build modes on the fly
 - **Subagent activity** — watch live subagent progress in chat, including the current task, agent, model, and active tool step
 - **Custom Commands** — run OpenCode custom commands (and built-ins like `init`/`review`) from an inline menu with confirmation
+- **Skills Catalog** — browse OpenCode skills from an inline menu and run them immediately or with arguments in the next message
 - **Interactive Q&A** — answer agent questions and approve permissions via inline buttons
 - **Voice prompts** — send voice/audio messages, transcribe them via a Whisper-compatible API, and optionally enable spoken replies with `/tts`
 - **File attachments** — send images, PDF documents, and any text-based files to OpenCode (code, logs, configs etc.)
@@ -134,6 +135,7 @@ opencode-telegram config
 | `/tts`            | Toggle audio replies                                    |
 | `/rename`         | Rename the current session                              |
 | `/commands`       | Browse and run custom commands                          |
+| `/skills`         | Browse and run OpenCode skills                          |
 | `/task`           | Create a scheduled task                                 |
 | `/tasklist`       | Browse and delete scheduled tasks                       |
 | `/opencode_start` | Start the local OpenCode server on the bot machine      |
@@ -184,7 +186,7 @@ When installed via npm, the configuration wizard handles the initial setup. The 
 | `SESSIONS_LIST_LIMIT`           | Sessions per page in `/sessions`                                                                             |    No    | `10`                     |
 | `PROJECTS_LIST_LIMIT`           | Projects per page in `/projects`                                                                             |    No    | `10`                     |
 | `OPEN_BROWSER_ROOTS`            | Comma-separated paths `/open` is allowed to browse (supports `~`)                                            |    No    | `~` (home directory)     |
-| `COMMANDS_LIST_LIMIT`           | Commands per page in `/commands`                                                                             |    No    | `10`                     |
+| `COMMANDS_LIST_LIMIT`           | Items per page in `/commands` and `/skills`                                                                  |    No    | `10`                     |
 | `TASK_LIMIT`                    | Maximum number of scheduled tasks that can exist at once                                                     |    No    | `10`                     |
 | `BASH_TOOL_DISPLAY_MAX_LENGTH`  | Maximum displayed length for `bash` tool commands in Telegram summaries; longer commands are truncated       |    No    | `128`                    |
 | `SERVICE_MESSAGES_INTERVAL_SEC` | Service messages interval (thinking + tool calls); keep `>=2` to avoid Telegram rate limits, `0` = immediate |    No    | `5`                      |
