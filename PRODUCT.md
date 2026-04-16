@@ -100,6 +100,7 @@ Current command set:
 - `/abort` - stop the current task
 - `/sessions` - show and switch recent sessions
 - `/projects` - show and switch projects
+- `/worktree` - show and switch existing git worktrees for the current repository
 - `/tts` - toggle global audio replies
 - `/task` - create a scheduled task
 - `/tasklist` - browse and delete scheduled tasks
@@ -132,7 +133,7 @@ Model picker behavior:
 
 - [x] Single-user access control by allowed Telegram user ID
 - [x] OpenCode server control from Telegram (`/status`, `/opencode_start`, `/opencode_stop`)
-- [x] Project and session management from Telegram (`/projects`, `/sessions`, `/new`)
+- [x] Project and session management from Telegram (`/projects`, `/worktree`, `/sessions`, `/new`)
 - [x] Remote task execution and interruption support (`/abort`)
 - [x] Telegram-friendly result delivery, including sending generated code/files when needed
 - [x] Interactive question and permission handling directly in chat (buttons + custom answers)
@@ -151,6 +152,7 @@ Model picker behavior:
 - [x] Text file attachments support (send code/config/log files from Telegram to OpenCode)
 - [x] Voice/audio transcription via Whisper-compatible APIs (OpenAI/Groq/Together and compatible providers)
 - [x] Optional global audio replies with `/tts` via OpenAI-compatible APIs
+- [x] Git worktree switching and main-project status display for git repositories (`/worktree`)
 
 ## Current Task List
 
@@ -160,7 +162,7 @@ Open tasks for upcoming iterations:
 - [ ] `/skills` command: browse skills and choose one for usage
 - [ ] `/mcps` command: browse available MCP servers
 - [x] Dynamic subagent activity display during task execution
-- [ ] Git tree support
+- [x] Git worktree support
 - [ ] Docker runtime support and deployment guide
 - [ ] OpenCode server monitoring with automatic restart on stop/crash
 

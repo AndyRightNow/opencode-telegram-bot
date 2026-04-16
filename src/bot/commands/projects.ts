@@ -1,6 +1,7 @@
 import { CommandContext, Context } from "grammy";
 import { InlineKeyboard } from "grammy";
 import { getCurrentProject } from "../../settings/manager.js";
+import { getGitWorktreeContext } from "../../git/worktree.js";
 import { getProjects } from "../../project/manager.js";
 import { syncSessionDirectoryCache } from "../../session/cache-manager.js";
 
@@ -107,9 +108,35 @@ function buildProjectsMenuText(
   })}`;
 }
 
-function buildProjectsKeyboard(projects: ProjectInfo[], page: number): InlineKeyboard {
+function worktreeKey(worktree: string): string {
+  return process.platform === "win32" ? worktree.toLowerCase() : worktree;
+}
+
+async function getActiveProjectWorktree(): Promise<string | null> {
+  const currentProject = getCurrentProject();
+  if (!currentProject) {
+    return null;
+  }
+
+  try {
+    const worktreeContext = await getGitWorktreeContext(currentProject.worktree);
+    if (worktreeContext) {
+      return worktreeContext.mainProjectPath;
+    }
+  } catch (error) {
+    logger.debug("[Projects] Could not resolve active git worktree metadata:", error);
+  }
+
+  return currentProject.worktree;
+}
+
+async function buildProjectsKeyboard(
+  projects: ProjectInfo[],
+  page: number,
+): Promise<InlineKeyboard> {
   const keyboard = new InlineKeyboard();
   const currentProject = getCurrentProject();
+  const activeProjectWorktree = await getActiveProjectWorktree();
   const pageSize = config.bot.projectsListLimit;
   const {
     page: normalizedPage,
@@ -121,7 +148,10 @@ function buildProjectsKeyboard(projects: ProjectInfo[], page: number): InlineKey
   projects.slice(startIndex, endIndex).forEach((project, index) => {
     const isActive =
       currentProject &&
-      (project.id === currentProject.id || project.worktree === currentProject.worktree);
+      (project.id === currentProject.id ||
+        project.worktree === currentProject.worktree ||
+        (activeProjectWorktree !== null &&
+          worktreeKey(project.worktree) === worktreeKey(activeProjectWorktree)));
     const label = buildProjectButtonLabel(startIndex + index, project.worktree);
     const labelWithCheck = formatProjectButtonLabel(label, Boolean(isActive));
     keyboard.text(labelWithCheck, `project:${project.id}`).row();
@@ -146,10 +176,10 @@ function buildProjectsKeyboard(projects: ProjectInfo[], page: number): InlineKey
   return keyboard;
 }
 
-function buildProjectsMenuView(
+async function buildProjectsMenuView(
   projects: ProjectInfo[],
   page: number,
-): { text: string; keyboard: InlineKeyboard } {
+): Promise<{ text: string; keyboard: InlineKeyboard }> {
   const currentProject = getCurrentProject();
   const pageSize = config.bot.projectsListLimit;
   const { page: normalizedPage, totalPages } = calculateProjectsPaginationRange(
@@ -161,7 +191,7 @@ function buildProjectsMenuView(
 
   return {
     text: buildProjectsMenuText(currentProjectName, normalizedPage, totalPages),
-    keyboard: buildProjectsKeyboard(projects, normalizedPage),
+    keyboard: await buildProjectsKeyboard(projects, normalizedPage),
   };
 }
 
@@ -180,7 +210,7 @@ export async function projectsCommand(ctx: CommandContext<Context>) {
       return;
     }
 
-    const { text, keyboard } = buildProjectsMenuView(projects, 0);
+    const { text, keyboard } = await buildProjectsMenuView(projects, 0);
 
     await replyWithInlineMenu(ctx, {
       menuKind: "project",
@@ -219,7 +249,7 @@ export async function handleProjectSelect(ctx: Context): Promise<boolean> {
         return true;
       }
 
-      const { text, keyboard } = buildProjectsMenuView(projects, page);
+      const { text, keyboard } = await buildProjectsMenuView(projects, page);
       await ctx.answerCallbackQuery();
       await ctx.editMessageText(text, {
         reply_markup: appendInlineMenuCancelButton(keyboard, "project"),

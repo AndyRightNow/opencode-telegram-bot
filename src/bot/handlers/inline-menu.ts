@@ -15,6 +15,7 @@ const INLINE_MENU_KINDS = [
   "variant",
   "context",
   "open",
+  "worktree",
 ] as const;
 
 export type InlineMenuKind = (typeof INLINE_MENU_KINDS)[number];

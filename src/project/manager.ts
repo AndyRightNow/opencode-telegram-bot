@@ -9,42 +9,10 @@ interface InternalProject extends ProjectInfo {
   lastUpdated: number;
 }
 
-async function isLinkedGitWorktree(worktree: string): Promise<boolean> {
-  if (worktree === "/") {
-    return false;
-  }
-
-  const gitPath = path.join(worktree, ".git");
-
-  try {
-    const gitStat = await stat(gitPath);
-
-    if (!gitStat.isFile()) {
-      return false;
-    }
-
-    const gitPointer = (await readFile(gitPath, "utf-8")).trim();
-    const match = gitPointer.match(/^gitdir:\s*(.+)$/i);
-    if (!match) {
-      return false;
-    }
-
-    const gitDir = path.resolve(worktree, match[1].trim()).replace(/\\/g, "/").toLowerCase();
-    return gitDir.includes("/.git/worktrees/");
-  } catch {
-    return false;
-  }
-}
-
-function worktreeKey(worktree: string): string {
-  if (process.platform === "win32") {
-    return worktree.toLowerCase();
-  }
-
-  return worktree;
-}
-
-export async function getProjects(): Promise<ProjectInfo[]> {
+async function getResolvedProjects(options?: {
+  includeLinkedWorktrees?: boolean;
+}): Promise<InternalProject[]> {
+  const includeLinkedWorktrees = options?.includeLinkedWorktrees === true;
   const { data: projects, error } = await opencodeClient.project.list();
 
   if (error || !projects) {
@@ -88,6 +56,10 @@ export async function getProjects(): Promise<ProjectInfo[]> {
     (left, right) => right.lastUpdated - left.lastUpdated,
   );
 
+  if (includeLinkedWorktrees) {
+    return projectList;
+  }
+
   const linkedWorktreeFlags = await Promise.all(
     projectList.map((project) => isLinkedGitWorktree(project.worktree)),
   );
@@ -99,7 +71,52 @@ export async function getProjects(): Promise<ProjectInfo[]> {
     `[ProjectManager] Projects resolved: api=${projects.length}, cached=${cachedProjects.length}, hiddenLinkedWorktrees=${hiddenLinkedWorktrees}, total=${visibleProjects.length}`,
   );
 
-  return visibleProjects.map(({ id, worktree, name }) => ({ id, worktree, name }));
+  return visibleProjects;
+}
+
+async function isLinkedGitWorktree(worktree: string): Promise<boolean> {
+  if (worktree === "/") {
+    return false;
+  }
+
+  const gitPath = path.join(worktree, ".git");
+
+  try {
+    const gitStat = await stat(gitPath);
+
+    if (!gitStat.isFile()) {
+      return false;
+    }
+
+    const gitPointer = (await readFile(gitPath, "utf-8")).trim();
+    const match = gitPointer.match(/^gitdir:\s*(.+)$/i);
+    if (!match) {
+      return false;
+    }
+
+    const gitDir = path.resolve(worktree, match[1].trim()).replace(/\\/g, "/").toLowerCase();
+    return gitDir.includes("/.git/worktrees/");
+  } catch {
+    return false;
+  }
+}
+
+function worktreeKey(worktree: string): string {
+  const normalizedWorktree = path.normalize(worktree);
+  const root = path.parse(normalizedWorktree).root;
+  const trimmedWorktree =
+    normalizedWorktree === root ? normalizedWorktree : normalizedWorktree.replace(/[\\/]+$/, "");
+
+  if (process.platform === "win32") {
+    return trimmedWorktree.toLowerCase();
+  }
+
+  return trimmedWorktree;
+}
+
+export async function getProjects(): Promise<ProjectInfo[]> {
+  const projects = await getResolvedProjects();
+  return projects.map(({ id, worktree, name }) => ({ id, worktree, name }));
 }
 
 export async function getProjectById(id: string): Promise<ProjectInfo> {
@@ -112,11 +129,11 @@ export async function getProjectById(id: string): Promise<ProjectInfo> {
 }
 
 export async function getProjectByWorktree(worktree: string): Promise<ProjectInfo> {
-  const projects = await getProjects();
+  const projects = await getResolvedProjects({ includeLinkedWorktrees: true });
   const key = worktreeKey(worktree);
   const project = projects.find((p) => worktreeKey(p.worktree) === key);
   if (!project) {
     throw new Error(`Project with worktree ${worktree} not found`);
   }
-  return project;
+  return { id: project.id, worktree: project.worktree, name: project.name };
 }

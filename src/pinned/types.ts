@@ -26,8 +26,9 @@ export interface PinnedMessageState {
   chatId: number | null;
   sessionId: string | null;
   sessionTitle: string;
-  projectName: string;
+  projectPath: string;
   projectBranch: string | null;
+  projectWorktreePath: string | null;
   tokensUsed: number;
   tokensLimit: number;
   lastUpdated: number;

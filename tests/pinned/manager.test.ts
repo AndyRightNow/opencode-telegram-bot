@@ -5,8 +5,6 @@ const mocked = vi.hoisted(() => ({
     session: { list: vi.fn().mockResolvedValue({ data: [] }) },
     config: { get: vi.fn().mockResolvedValue({ data: {} }) },
   },
-  readFile: vi.fn(),
-  stat: vi.fn(),
   getCurrentSession: vi.fn(),
   getCurrentProject: vi.fn(),
   getPinnedMessageId: vi.fn().mockReturnValue(null),
@@ -14,13 +12,13 @@ const mocked = vi.hoisted(() => ({
   clearPinnedMessageId: vi.fn(),
   getStoredModel: vi.fn().mockReturnValue(null),
   getModelContextLimit: vi.fn().mockResolvedValue(204800),
+  getGitWorktreeContext: vi.fn(),
 }));
 
-vi.mock("node:fs/promises", () => ({
-  readFile: mocked.readFile,
-  stat: mocked.stat,
-}));
 vi.mock("../../src/opencode/client.js", () => ({ opencodeClient: mocked.opencodeClient }));
+vi.mock("../../src/git/worktree.js", () => ({
+  getGitWorktreeContext: mocked.getGitWorktreeContext,
+}));
 vi.mock("../../src/session/manager.js", () => ({ getCurrentSession: mocked.getCurrentSession }));
 vi.mock("../../src/settings/manager.js", () => ({
   getCurrentProject: mocked.getCurrentProject,
@@ -40,6 +38,7 @@ vi.mock("../../src/i18n/index.js", async (importOriginal) => {
       if (key === "pinned.default_session_title") return "new session";
       if (key === "pinned.unknown") return "Unknown";
       if (key === "pinned.line.project") return `Project: ${params?.project ?? ""}`;
+      if (key === "pinned.line.worktree") return `Worktree: ${params?.worktree ?? ""}`;
       if (key === "pinned.line.model") return `Model: ${params?.model ?? ""}`;
       if (key === "pinned.files.title") return `Files (${params?.count ?? 0}):`;
       if (key === "pinned.files.item") return `  ${params?.path ?? ""}${params?.diff ?? ""}`;
@@ -82,16 +81,12 @@ describe("pinned/manager", () => {
     mocked.getStoredModel.mockReturnValue({ providerID: "openai", modelID: "gpt-5" });
     mocked.getModelContextLimit.mockResolvedValue(204800);
     mocked.getPinnedMessageId.mockReturnValue(null);
-    mocked.stat.mockImplementation(async (filePath: string) => ({
-      isDirectory: () => filePath.endsWith(".git"),
-      isFile: () => false,
-    }));
-    mocked.readFile.mockImplementation(async (filePath: string) => {
-      if (filePath.endsWith("HEAD")) {
-        return "ref: refs/heads/main\n";
-      }
-
-      throw new Error(`Unexpected file read: ${filePath}`);
+    mocked.getGitWorktreeContext.mockResolvedValue({
+      mainProjectPath: "D:/repo",
+      activeWorktreePath: "D:/repo",
+      branch: "main",
+      isLinkedWorktree: false,
+      worktrees: [],
     });
   });
 
@@ -158,12 +153,12 @@ describe("pinned/manager", () => {
       await pinnedMessageManager.onSessionChange("ses-1", "Test Session");
 
       fakeApi.editMessageText.mockClear();
-      mocked.readFile.mockImplementation(async (filePath: string) => {
-        if (filePath.endsWith("HEAD")) {
-          return "ref: refs/heads/feature/mobile\n";
-        }
-
-        throw new Error(`Unexpected file read: ${filePath}`);
+      mocked.getGitWorktreeContext.mockResolvedValue({
+        mainProjectPath: "D:/repo",
+        activeWorktreePath: "D:/repo",
+        branch: "feature/mobile",
+        isLinkedWorktree: false,
+        worktrees: [],
       });
 
       await pinnedMessageManager.refresh();
@@ -171,7 +166,7 @@ describe("pinned/manager", () => {
       expect(fakeApi.editMessageText).toHaveBeenCalledWith(
         123,
         999,
-        expect.stringContaining("Project: repo: feature/mobile"),
+        expect.stringContaining("Project: D:/repo: feature/mobile"),
       );
     });
   });
@@ -182,49 +177,54 @@ describe("pinned/manager", () => {
 
       expect(fakeApi.sendMessage).toHaveBeenCalledWith(
         123,
-        expect.stringContaining("Project: repo: main"),
+        expect.stringContaining("Project: D:/repo: main"),
       );
     });
 
     it("keeps only project name when branch is unavailable", async () => {
-      mocked.stat.mockRejectedValue(new Error("not a git repo"));
-
-      await pinnedMessageManager.onSessionChange("ses-1", "Test Session");
-
-      expect(fakeApi.sendMessage).toHaveBeenCalledWith(
-        123,
-        expect.stringContaining("Project: repo"),
-      );
-      expect(fakeApi.sendMessage).not.toHaveBeenCalledWith(
-        123,
-        expect.stringContaining("Project: repo:"),
-      );
-    });
-
-    it("supports linked worktrees via gitdir pointer", async () => {
-      mocked.stat.mockImplementation(async (filePath: string) => ({
-        isDirectory: () => false,
-        isFile: () => filePath.endsWith(".git"),
-      }));
-      mocked.readFile.mockImplementation(async (filePath: string) => {
-        const normalizedPath = filePath.replace(/\\/g, "/");
-
-        if (filePath.endsWith(".git")) {
-          return "gitdir: ../.git/worktrees/repo-feature\n";
-        }
-
-        if (normalizedPath.includes(".git/worktrees/repo-feature/HEAD")) {
-          return "ref: refs/heads/feature/worktree\n";
-        }
-
-        throw new Error(`Unexpected file read: ${filePath}`);
+      mocked.getGitWorktreeContext.mockResolvedValue({
+        mainProjectPath: "D:/repo",
+        activeWorktreePath: "D:/repo",
+        branch: null,
+        isLinkedWorktree: false,
+        worktrees: [],
       });
 
       await pinnedMessageManager.onSessionChange("ses-1", "Test Session");
 
       expect(fakeApi.sendMessage).toHaveBeenCalledWith(
         123,
-        expect.stringContaining("Project: repo: feature/worktree"),
+        expect.stringContaining("Project: D:/repo"),
+      );
+      expect(fakeApi.sendMessage).not.toHaveBeenCalledWith(
+        123,
+        expect.stringContaining("Project: D:/repo:"),
+      );
+    });
+
+    it("shows separate worktree line for linked worktrees", async () => {
+      mocked.getCurrentProject.mockReturnValue({
+        id: "p1",
+        worktree: "D:/repo-feature",
+        name: "repo-feature",
+      });
+      mocked.getGitWorktreeContext.mockResolvedValue({
+        mainProjectPath: "D:/repo",
+        activeWorktreePath: "D:/repo-feature",
+        branch: "feature/worktree",
+        isLinkedWorktree: true,
+        worktrees: [],
+      });
+
+      await pinnedMessageManager.onSessionChange("ses-1", "Test Session");
+
+      expect(fakeApi.sendMessage).toHaveBeenCalledWith(
+        123,
+        expect.stringContaining("Project: D:/repo: feature/worktree"),
+      );
+      expect(fakeApi.sendMessage).toHaveBeenCalledWith(
+        123,
+        expect.stringContaining("Worktree: D:/repo-feature"),
       );
     });
   });

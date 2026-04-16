@@ -9,6 +9,7 @@ const mocked = vi.hoisted(() => ({
   isTtsEnabledMock: vi.fn(),
   fetchCurrentAgentMock: vi.fn(),
   fetchCurrentModelMock: vi.fn(),
+  getGitWorktreeContextMock: vi.fn(),
   keyboardInitializeMock: vi.fn(),
   keyboardUpdateContextMock: vi.fn(),
   keyboardGetKeyboardMock: vi.fn(),
@@ -45,6 +46,10 @@ vi.mock("../../../src/model/manager.js", () => ({
   fetchCurrentModel: mocked.fetchCurrentModelMock,
 }));
 
+vi.mock("../../../src/git/worktree.js", () => ({
+  getGitWorktreeContext: mocked.getGitWorktreeContextMock,
+}));
+
 vi.mock("../../../src/keyboard/manager.js", () => ({
   keyboardManager: {
     initialize: mocked.keyboardInitializeMock,
@@ -75,6 +80,7 @@ describe("bot/commands/status", () => {
     mocked.isTtsEnabledMock.mockReset();
     mocked.fetchCurrentAgentMock.mockReset();
     mocked.fetchCurrentModelMock.mockReset();
+    mocked.getGitWorktreeContextMock.mockReset();
     mocked.keyboardInitializeMock.mockReset();
     mocked.keyboardUpdateContextMock.mockReset();
     mocked.keyboardGetKeyboardMock.mockReset();
@@ -91,6 +97,7 @@ describe("bot/commands/status", () => {
     mocked.isTtsEnabledMock.mockReturnValue(true);
     mocked.fetchCurrentAgentMock.mockResolvedValue("build");
     mocked.fetchCurrentModelMock.mockReturnValue({ providerID: "openai", modelID: "gpt-5" });
+    mocked.getGitWorktreeContextMock.mockResolvedValue(null);
     mocked.keyboardGetKeyboardMock.mockReturnValue({ inline_keyboard: [] });
     mocked.pinnedIsInitializedMock.mockReturnValue(false);
     mocked.pinnedGetContextLimitMock.mockReturnValue(200000);
@@ -113,5 +120,33 @@ describe("bot/commands/status", () => {
     expect(message).toContain("TTS replies");
     expect(message).toContain("On");
     expect(message).not.toContain("Started by bot");
+  });
+
+  it("shows main project path and linked worktree when git metadata is available", async () => {
+    mocked.getCurrentProjectMock.mockReturnValue({
+      id: "p1",
+      worktree: "/repo-feature",
+      name: "Repo",
+    });
+    mocked.getGitWorktreeContextMock.mockResolvedValue({
+      mainProjectPath: "/repo-main",
+      activeWorktreePath: "/repo-feature",
+      branch: "feature/mobile",
+      isLinkedWorktree: true,
+      worktrees: [],
+    });
+
+    const ctx = {
+      chat: { id: 42, type: "private" },
+      message: { text: "/status" },
+      api: {},
+      reply: vi.fn(),
+    } as unknown as Context;
+
+    await statusCommand(ctx as never);
+
+    const message = mocked.sendBotTextMock.mock.calls[0]?.[0]?.text as string;
+    expect(message).toContain("Project: /repo-main: feature/mobile");
+    expect(message).toContain("Worktree: /repo-feature");
   });
 });

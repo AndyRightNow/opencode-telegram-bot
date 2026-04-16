@@ -1,8 +1,7 @@
 import type { Api } from "grammy";
-import { readFile, stat } from "node:fs/promises";
-import path from "node:path";
 import { logger } from "../utils/logger.js";
 import { opencodeClient } from "../opencode/client.js";
+import { getGitWorktreeContext } from "../git/worktree.js";
 import { getCurrentSession } from "../session/manager.js";
 import {
   getCurrentProject,
@@ -29,8 +28,9 @@ class PinnedMessageManager {
     chatId: null,
     sessionId: null,
     sessionTitle: t("pinned.default_session_title"),
-    projectName: "",
+    projectPath: "",
     projectBranch: null,
+    projectWorktreePath: null,
     tokensUsed: 0,
     tokensLimit: 0,
     lastUpdated: 0,
@@ -536,72 +536,28 @@ class PinnedMessageManager {
    */
   private async refreshProjectMetadata(): Promise<void> {
     const project = getCurrentProject();
-    this.state.projectName =
-      project?.name || this.extractProjectName(project?.worktree) || t("pinned.unknown");
-    this.state.projectBranch = await this.getGitBranchName(project?.worktree);
-  }
+    this.state.projectPath = project?.worktree || t("pinned.unknown");
+    this.state.projectBranch = null;
+    this.state.projectWorktreePath = null;
 
-  /**
-   * Resolve current git branch for a project worktree.
-   */
-  private async getGitBranchName(worktree: string | undefined): Promise<string | null> {
-    if (!worktree) {
-      return null;
+    if (!project?.worktree) {
+      return;
     }
 
     try {
-      const gitDir = await this.resolveGitDir(worktree);
-      if (!gitDir) {
-        return null;
+      const worktreeContext = await getGitWorktreeContext(project.worktree);
+      if (!worktreeContext) {
+        return;
       }
 
-      const headPath = path.join(gitDir, "HEAD");
-      const headContent = (await readFile(headPath, "utf-8")).trim();
-      const match = headContent.match(/^ref:\s+refs\/heads\/(.+)$/);
-      return match?.[1] || null;
+      this.state.projectPath = worktreeContext.mainProjectPath;
+      this.state.projectBranch = worktreeContext.branch;
+      this.state.projectWorktreePath = worktreeContext.isLinkedWorktree
+        ? worktreeContext.activeWorktreePath
+        : null;
     } catch (err) {
-      logger.debug("[PinnedManager] Could not resolve git branch:", err);
-      return null;
+      logger.debug("[PinnedManager] Could not resolve git worktree metadata:", err);
     }
-  }
-
-  /**
-   * Resolve git directory for a normal repository or linked worktree.
-   */
-  private async resolveGitDir(worktree: string): Promise<string | null> {
-    const gitPath = path.join(worktree, ".git");
-
-    try {
-      const gitStat = await stat(gitPath);
-
-      if (gitStat.isDirectory()) {
-        return gitPath;
-      }
-
-      if (!gitStat.isFile()) {
-        return null;
-      }
-
-      const gitPointer = (await readFile(gitPath, "utf-8")).trim();
-      const match = gitPointer.match(/^gitdir:\s*(.+)$/i);
-      if (!match) {
-        return null;
-      }
-
-      return path.resolve(worktree, match[1].trim());
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Extract project name from worktree path
-   */
-  private extractProjectName(worktree: string | undefined): string {
-    if (!worktree) return "";
-    // Get last part of path
-    const parts = worktree.replace(/\\/g, "/").split("/");
-    return parts[parts.length - 1] || "";
   }
 
   /**
@@ -672,15 +628,20 @@ class PinnedMessageManager {
     const currentModel = getStoredModel();
     const modelName = formatModelDisplayName(currentModel.providerID, currentModel.modelID);
     const projectDisplayName = this.state.projectBranch
-      ? `${this.state.projectName}: ${this.state.projectBranch}`
-      : this.state.projectName;
+      ? `${this.state.projectPath}: ${this.state.projectBranch}`
+      : this.state.projectPath;
 
     const lines = [
       `${this.state.sessionTitle}`,
       t("pinned.line.project", { project: projectDisplayName }),
-      t("pinned.line.model", { model: modelName }),
-      formatContextLine(this.state.tokensUsed, this.state.tokensLimit),
     ];
+
+    if (this.state.projectWorktreePath) {
+      lines.push(t("pinned.line.worktree", { worktree: this.state.projectWorktreePath }));
+    }
+
+    lines.push(t("pinned.line.model", { model: modelName }));
+    lines.push(formatContextLine(this.state.tokensUsed, this.state.tokensLimit));
 
     if (this.state.cost !== undefined && this.state.cost !== null) {
       lines.push(formatCostLine(this.state.cost));
@@ -873,7 +834,9 @@ class PinnedMessageManager {
       this.state.sessionId = null;
       this.state.tokensUsed = 0;
       this.state.tokensLimit = 0;
+      this.state.projectPath = "";
       this.state.projectBranch = null;
+      this.state.projectWorktreePath = null;
       this.state.changedFiles = [];
       this.lastRenderedMessageText = null;
       this.pendingUpdate = false;
@@ -890,8 +853,9 @@ class PinnedMessageManager {
       this.state.messageId = null;
       this.state.sessionId = null;
       this.state.sessionTitle = t("pinned.default_session_title");
-      this.state.projectName = "";
+      this.state.projectPath = "";
       this.state.projectBranch = null;
+      this.state.projectWorktreePath = null;
       this.state.tokensUsed = 0;
       this.state.tokensLimit = 0;
       this.state.changedFiles = [];

@@ -123,6 +123,34 @@ describe("project/manager", () => {
       );
     });
 
+    it("returns linked git worktrees even when they are hidden from /projects", async () => {
+      tempRoot = await mkdtemp(path.join(os.tmpdir(), "opencode-project-by-worktree-"));
+
+      const mainWorktree = path.join(tempRoot, "repo-main");
+      const linkedWorktree = path.join(tempRoot, "repo-feature");
+
+      await mkdir(path.join(mainWorktree, ".git"), { recursive: true });
+      await mkdir(linkedWorktree, { recursive: true });
+      await writeFile(
+        path.join(linkedWorktree, ".git"),
+        `gitdir: ${path.join(mainWorktree, ".git", "worktrees", "feature")}`,
+        "utf-8",
+      );
+
+      projectListMock.mockResolvedValueOnce({
+        data: [
+          { id: "main", worktree: mainWorktree, name: "Main" },
+          { id: "feature", worktree: linkedWorktree, name: "Feature" },
+        ],
+        error: null,
+      });
+      cachedSessionProjectsMock.mockResolvedValueOnce([]);
+
+      const project = await getProjectByWorktree(linkedWorktree);
+
+      expect(project).toEqual({ id: "feature", worktree: linkedWorktree, name: "Feature" });
+    });
+
     it("should match case-insensitively on Windows", async () => {
       const originalPlatform = process.platform;
       Object.defineProperty(process, "platform", { value: "win32" });
@@ -135,6 +163,28 @@ describe("project/manager", () => {
         cachedSessionProjectsMock.mockResolvedValueOnce([]);
 
         const project = await getProjectByWorktree("c:\\users\\dev\\repo");
+        expect(project).toEqual({
+          id: "p1",
+          worktree: "C:\\Users\\Dev\\Repo",
+          name: "Repo",
+        });
+      } finally {
+        Object.defineProperty(process, "platform", { value: originalPlatform });
+      }
+    });
+
+    it("should match Windows worktree paths with mixed separators", async () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", { value: "win32" });
+
+      try {
+        projectListMock.mockResolvedValueOnce({
+          data: [{ id: "p1", worktree: "C:\\Users\\Dev\\Repo", name: "Repo" }],
+          error: null,
+        });
+        cachedSessionProjectsMock.mockResolvedValueOnce([]);
+
+        const project = await getProjectByWorktree("C:/Users/Dev/Repo/");
         expect(project).toEqual({
           id: "p1",
           worktree: "C:\\Users\\Dev\\Repo",

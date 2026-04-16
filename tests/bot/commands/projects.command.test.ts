@@ -5,8 +5,10 @@ import { foregroundSessionState } from "../../../src/scheduled-task/foreground-s
 import { t } from "../../../src/i18n/index.js";
 
 const mocked = vi.hoisted(() => ({
+  currentProject: null as { id: string; worktree: string; name?: string } | null,
   syncSessionDirectoryCacheMock: vi.fn(),
   getProjectsMock: vi.fn(),
+  getGitWorktreeContextMock: vi.fn(),
   replyWithInlineMenuMock: vi.fn(),
 }));
 
@@ -19,8 +21,12 @@ vi.mock("../../../src/project/manager.js", () => ({
   getProjects: mocked.getProjectsMock,
 }));
 
+vi.mock("../../../src/git/worktree.js", () => ({
+  getGitWorktreeContext: mocked.getGitWorktreeContextMock,
+}));
+
 vi.mock("../../../src/settings/manager.js", () => ({
-  getCurrentProject: vi.fn(() => null),
+  getCurrentProject: vi.fn(() => mocked.currentProject),
   setCurrentProject: vi.fn(),
 }));
 
@@ -83,8 +89,10 @@ function createContext(): Context {
 describe("bot/commands/projects command", () => {
   beforeEach(() => {
     foregroundSessionState.__resetForTests();
+    mocked.currentProject = null;
     mocked.syncSessionDirectoryCacheMock.mockReset();
     mocked.getProjectsMock.mockReset();
+    mocked.getGitWorktreeContextMock.mockReset().mockResolvedValue(null);
     mocked.replyWithInlineMenuMock.mockReset();
   });
 
@@ -98,5 +106,34 @@ describe("bot/commands/projects command", () => {
     expect(mocked.getProjectsMock).not.toHaveBeenCalled();
     expect(mocked.replyWithInlineMenuMock).not.toHaveBeenCalled();
     expect(ctx.reply).toHaveBeenCalledWith(t("interaction.blocked.finish_current"));
+  });
+
+  it("marks the main project as active when the current selection is a linked worktree", async () => {
+    mocked.currentProject = {
+      id: "linked-worktree",
+      worktree: "C:\\worktrees\\repo-feature",
+      name: "repo-feature",
+    };
+    mocked.getProjectsMock.mockResolvedValue([
+      { id: "main-project", worktree: "C:\\repo", name: "Repo" },
+      { id: "other-project", worktree: "C:\\other", name: "Other" },
+    ]);
+    mocked.getGitWorktreeContextMock.mockResolvedValue({
+      mainProjectPath: "C:\\repo",
+      activeWorktreePath: "C:\\worktrees\\repo-feature",
+      branch: "feature/mobile",
+      isLinkedWorktree: true,
+      worktrees: [],
+    });
+
+    const ctx = createContext();
+    await projectsCommand(ctx as never);
+
+    const keyboard = mocked.replyWithInlineMenuMock.mock.calls[0]?.[1]?.keyboard as {
+      inline_keyboard: Array<Array<{ text: string }>>;
+    };
+
+    expect(keyboard.inline_keyboard[0]?.[0]?.text).toContain("✅");
+    expect(keyboard.inline_keyboard[1]?.[0]?.text).not.toContain("✅");
   });
 });

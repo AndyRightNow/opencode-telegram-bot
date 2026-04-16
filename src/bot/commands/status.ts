@@ -1,5 +1,6 @@
 import { CommandContext, Context } from "grammy";
 import { opencodeClient } from "../../opencode/client.js";
+import { getGitWorktreeContext } from "../../git/worktree.js";
 import { getCurrentSession } from "../../session/manager.js";
 import { getCurrentProject, isTtsEnabled } from "../../settings/manager.js";
 import { fetchCurrentAgent } from "../../agent/manager.js";
@@ -43,8 +44,27 @@ export async function statusCommand(ctx: CommandContext<Context>) {
 
     const currentProject = getCurrentProject();
     if (currentProject) {
-      const projectName = currentProject.name || currentProject.worktree;
-      message += `\n${t("status.project_selected", { project: projectName })}\n`;
+      let projectDisplay = currentProject.worktree;
+      let linkedWorktreePath: string | null = null;
+
+      try {
+        const worktreeContext = await getGitWorktreeContext(currentProject.worktree);
+        if (worktreeContext) {
+          projectDisplay = worktreeContext.branch
+            ? `${worktreeContext.mainProjectPath}: ${worktreeContext.branch}`
+            : worktreeContext.mainProjectPath;
+          linkedWorktreePath = worktreeContext.isLinkedWorktree
+            ? worktreeContext.activeWorktreePath
+            : null;
+        }
+      } catch (error) {
+        logger.debug("[Status] Could not resolve git worktree metadata", error);
+      }
+
+      message += `\n${t("status.project_selected", { project: projectDisplay })}\n`;
+      if (linkedWorktreePath) {
+        message += `${t("status.worktree_selected", { worktree: linkedWorktreePath })}\n`;
+      }
     } else {
       message += `\n${t("status.project_not_selected")}\n`;
       message += t("status.project_hint");
