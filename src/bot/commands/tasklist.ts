@@ -153,12 +153,14 @@ function sortTasks(tasks: ScheduledTask[]): ScheduledTask[] {
 }
 
 function formatTaskDetails(task: ScheduledTask): string {
+  const variant = task.model.variant ? ` (${task.model.variant})` : "";
+  const model = `${task.model.providerID}/${task.model.modelID}${variant}`;
   const cronLine =
     task.kind === "cron" ? `${t("tasklist.details.cron", { cron: task.cron })}\n` : "";
 
   return t("tasklist.details", {
     prompt: task.prompt,
-    project: task.projectWorktree,
+    project: `${task.projectWorktree}\n${t("status.line.model", { model })}`,
     schedule: task.scheduleSummary,
     cronLine,
     timezone: task.timezone,
