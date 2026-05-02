@@ -6,6 +6,7 @@ import {
   startLocalOpencodeServer,
   type LocalOpencodeTarget,
 } from "./process.js";
+import { refreshSessionCacheAfterOpencodeReady } from "./ready-refresh.js";
 
 const SERVER_READY_TIMEOUT_MS = 10000;
 const SERVER_READY_POLL_INTERVAL_MS = 500;
@@ -42,10 +43,11 @@ export class OpencodeAutoRestartService {
   private localTarget: LocalOpencodeTarget | null = null;
   private started = false;
   private checkInProgress = false;
+  private serverWasHealthy = false;
 
-  async start(): Promise<void> {
+  async start(): Promise<boolean> {
     if (this.started || !config.opencode.autoRestartEnabled) {
-      return;
+      return false;
     }
 
     const localTarget = resolveLocalOpencodeTarget(config.opencode.apiUrl);
@@ -53,7 +55,7 @@ export class OpencodeAutoRestartService {
       logger.warn(
         `[OpenCodeAutoRestart] Disabled because OPENCODE_API_URL is not local: ${config.opencode.apiUrl}`,
       );
-      return;
+      return false;
     }
 
     this.started = true;
@@ -69,6 +71,8 @@ export class OpencodeAutoRestartService {
       void this.checkAndRestart("interval");
     }, config.opencode.monitorIntervalSec * 1000);
     this.timer.unref?.();
+
+    return true;
   }
 
   stop(): void {
@@ -79,6 +83,7 @@ export class OpencodeAutoRestartService {
 
     this.started = false;
     this.localTarget = null;
+    this.serverWasHealthy = false;
   }
 
   private async checkAndRestart(reason: "startup" | "interval"): Promise<void> {
@@ -91,8 +96,14 @@ export class OpencodeAutoRestartService {
     try {
       if (await isOpencodeServerHealthy()) {
         logger.debug(`[OpenCodeAutoRestart] Health-check succeeded: reason=${reason}`);
+        if (!this.serverWasHealthy) {
+          this.serverWasHealthy = true;
+          await refreshSessionCacheAfterOpencodeReady(`auto_restart_${reason}`);
+        }
         return;
       }
+
+      this.serverWasHealthy = false;
 
       logger.warn(
         `[OpenCodeAutoRestart] OpenCode server is unavailable, starting local server: reason=${reason}, port=${this.localTarget.port}`,
@@ -117,6 +128,8 @@ export class OpencodeAutoRestartService {
       logger.info(
         `[OpenCodeAutoRestart] OpenCode server recovered: pid=${pid ?? "unknown"}, port=${this.localTarget.port}`,
       );
+      this.serverWasHealthy = true;
+      await refreshSessionCacheAfterOpencodeReady(`auto_restart_${reason}`);
     } catch (error) {
       logger.error("[OpenCodeAutoRestart] Failed to check or restart OpenCode server", error);
     } finally {

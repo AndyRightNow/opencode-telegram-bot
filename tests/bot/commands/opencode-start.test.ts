@@ -7,8 +7,12 @@ const mocked = vi.hoisted(() => ({
   healthMock: vi.fn(),
   resolveLocalOpencodeTargetMock: vi.fn(),
   startLocalOpencodeServerMock: vi.fn(),
+  warmupSessionDirectoryCacheMock: vi.fn(),
+  reconcileStoredModelSelectionMock: vi.fn(),
   editBotTextMock: vi.fn(),
+  loggerDebugMock: vi.fn(),
   loggerInfoMock: vi.fn(),
+  loggerWarnMock: vi.fn(),
   loggerErrorMock: vi.fn(),
   config: {
     opencode: {
@@ -38,9 +42,20 @@ vi.mock("../../../src/bot/utils/telegram-text.js", () => ({
   editBotText: mocked.editBotTextMock,
 }));
 
+vi.mock("../../../src/session/cache-manager.js", () => ({
+  __resetSessionDirectoryCacheForTests: vi.fn(),
+  warmupSessionDirectoryCache: mocked.warmupSessionDirectoryCacheMock,
+}));
+
+vi.mock("../../../src/model/manager.js", () => ({
+  reconcileStoredModelSelection: mocked.reconcileStoredModelSelectionMock,
+}));
+
 vi.mock("../../../src/utils/logger.js", () => ({
   logger: {
+    debug: mocked.loggerDebugMock,
     info: mocked.loggerInfoMock,
+    warn: mocked.loggerWarnMock,
     error: mocked.loggerErrorMock,
   },
 }));
@@ -68,12 +83,18 @@ describe("bot/commands/opencode-start", () => {
     mocked.healthMock.mockReset();
     mocked.resolveLocalOpencodeTargetMock.mockReset();
     mocked.startLocalOpencodeServerMock.mockReset();
+    mocked.warmupSessionDirectoryCacheMock.mockReset();
+    mocked.reconcileStoredModelSelectionMock.mockReset();
     mocked.editBotTextMock.mockReset();
+    mocked.loggerDebugMock.mockReset();
     mocked.loggerInfoMock.mockReset();
+    mocked.loggerWarnMock.mockReset();
     mocked.loggerErrorMock.mockReset();
 
     mocked.config.opencode.apiUrl = "http://localhost:4096";
     mocked.resolveLocalOpencodeTargetMock.mockReturnValue({ host: "localhost", port: 4096 });
+    mocked.warmupSessionDirectoryCacheMock.mockResolvedValue(undefined);
+    mocked.reconcileStoredModelSelectionMock.mockResolvedValue(undefined);
     mocked.editBotTextMock.mockResolvedValue(undefined);
   });
 
@@ -102,6 +123,7 @@ describe("bot/commands/opencode-start", () => {
       t("opencode_start.already_running", { version: "1.2.3" }),
     );
     expect(mocked.startLocalOpencodeServerMock).not.toHaveBeenCalled();
+    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(1);
   });
 
   it("starts the local server and reports success", async () => {
@@ -115,12 +137,43 @@ describe("bot/commands/opencode-start", () => {
 
     await opencodeStartCommand(ctx as never);
 
-    expect(mocked.startLocalOpencodeServerMock).toHaveBeenCalledWith({ host: "localhost", port: 4096 });
+    expect(mocked.startLocalOpencodeServerMock).toHaveBeenCalledWith({
+      host: "localhost",
+      port: 4096,
+    });
     expect(childProcess.unref).toHaveBeenCalledTimes(1);
     expect(mocked.editBotTextMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
         text: t("opencode_start.success", { pid: 123, version: "1.2.3" }),
       }),
+    );
+    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps start command successful when cache refresh fails", async () => {
+    const ctx = createContext();
+    const childProcess = createChildProcess(123);
+    mocked.startLocalOpencodeServerMock.mockReturnValue(childProcess);
+    mocked.warmupSessionDirectoryCacheMock.mockRejectedValueOnce(new Error("refresh failed"));
+    mocked.healthMock
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ data: { healthy: true, version: "1.2.3" }, error: null })
+      .mockResolvedValueOnce({ data: { healthy: true, version: "1.2.3" }, error: null });
+
+    await opencodeStartCommand(ctx as never);
+
+    expect(mocked.editBotTextMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        text: t("opencode_start.success", { pid: 123, version: "1.2.3" }),
+      }),
+    );
+    expect(mocked.loggerWarnMock).toHaveBeenCalledWith(
+      "[OpenCodeReady] Failed to refresh session cache: reason=opencode_start_success",
+      expect.any(Error),
+    );
+    expect(mocked.loggerErrorMock).not.toHaveBeenCalledWith(
+      "[Bot] Error in /opencode-start command:",
+      expect.any(Error),
     );
   });
 
@@ -141,5 +194,6 @@ describe("bot/commands/opencode-start", () => {
         text: t("opencode_start.started_not_ready", { pid: 321 }),
       }),
     );
+    expect(mocked.warmupSessionDirectoryCacheMock).not.toHaveBeenCalled();
   });
 });

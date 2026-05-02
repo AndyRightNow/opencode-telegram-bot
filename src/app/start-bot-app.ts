@@ -4,9 +4,9 @@ import { readFile } from "node:fs/promises";
 import { cleanupBotRuntime, createBot } from "../bot/index.js";
 import { config } from "../config.js";
 import { opencodeAutoRestartService } from "../opencode/auto-restart.js";
+import { refreshSessionCacheIfOpencodeReady } from "../opencode/ready-refresh.js";
 import { loadSettings } from "../settings/manager.js";
 import { scheduledTaskRuntime } from "../scheduled-task/runtime.js";
-import { warmupSessionDirectoryCache } from "../session/cache-manager.js";
 import { reconcileStoredModelSelection } from "../model/manager.js";
 import { getRuntimeMode } from "../runtime/mode.js";
 import { getRuntimePaths } from "../runtime/paths.js";
@@ -47,8 +47,10 @@ export async function startBotApp(): Promise<void> {
 
   await loadSettings();
   await reconcileStoredModelSelection();
-  await opencodeAutoRestartService.start();
-  await warmupSessionDirectoryCache();
+  const autoRestartHandledStartup = await opencodeAutoRestartService.start();
+  if (!autoRestartHandledStartup) {
+    await refreshSessionCacheIfOpencodeReady("startup");
+  }
 
   const bot = createBot();
   await scheduledTaskRuntime.initialize(bot);
