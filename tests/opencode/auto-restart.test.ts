@@ -5,8 +5,8 @@ const mocked = vi.hoisted(() => ({
   healthMock: vi.fn(),
   resolveLocalOpencodeTargetMock: vi.fn(),
   startLocalOpencodeServerMock: vi.fn(),
-  warmupSessionDirectoryCacheMock: vi.fn(),
-  reconcileStoredModelSelectionMock: vi.fn(),
+  notifyReadyMock: vi.fn(),
+  notifyUnavailableMock: vi.fn(),
   loggerDebugMock: vi.fn(),
   loggerInfoMock: vi.fn(),
   loggerWarnMock: vi.fn(),
@@ -37,13 +37,11 @@ vi.mock("../../src/opencode/process.js", () => ({
   startLocalOpencodeServer: mocked.startLocalOpencodeServerMock,
 }));
 
-vi.mock("../../src/session/cache-manager.js", () => ({
-  __resetSessionDirectoryCacheForTests: vi.fn(),
-  warmupSessionDirectoryCache: mocked.warmupSessionDirectoryCacheMock,
-}));
-
-vi.mock("../../src/model/manager.js", () => ({
-  reconcileStoredModelSelection: mocked.reconcileStoredModelSelectionMock,
+vi.mock("../../src/opencode/ready-lifecycle.js", () => ({
+  opencodeReadyLifecycle: {
+    notifyReady: mocked.notifyReadyMock,
+    notifyUnavailable: mocked.notifyUnavailableMock,
+  },
 }));
 
 vi.mock("../../src/utils/logger.js", () => ({
@@ -80,8 +78,8 @@ describe("opencode/auto-restart", () => {
     mocked.healthMock.mockReset();
     mocked.resolveLocalOpencodeTargetMock.mockReset();
     mocked.startLocalOpencodeServerMock.mockReset();
-    mocked.warmupSessionDirectoryCacheMock.mockReset();
-    mocked.reconcileStoredModelSelectionMock.mockReset();
+    mocked.notifyReadyMock.mockReset();
+    mocked.notifyUnavailableMock.mockReset();
     mocked.loggerDebugMock.mockReset();
     mocked.loggerInfoMock.mockReset();
     mocked.loggerWarnMock.mockReset();
@@ -92,8 +90,7 @@ describe("opencode/auto-restart", () => {
     mocked.config.opencode.monitorIntervalSec = 300;
     mocked.resolveLocalOpencodeTargetMock.mockReturnValue({ host: "localhost", port: 4096 });
     mocked.startLocalOpencodeServerMock.mockReturnValue(createChildProcess(123));
-    mocked.warmupSessionDirectoryCacheMock.mockResolvedValue(undefined);
-    mocked.reconcileStoredModelSelectionMock.mockResolvedValue(undefined);
+    mocked.notifyReadyMock.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -135,7 +132,7 @@ describe("opencode/auto-restart", () => {
 
     expect(mocked.healthMock).toHaveBeenCalledTimes(1);
     expect(mocked.startLocalOpencodeServerMock).not.toHaveBeenCalled();
-    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(1);
+    expect(mocked.notifyReadyMock).toHaveBeenCalledWith("auto_restart_startup");
 
     service.stop();
   });
@@ -157,7 +154,8 @@ describe("opencode/auto-restart", () => {
       port: 4096,
     });
     expect(childProcess.unref).toHaveBeenCalledTimes(1);
-    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(1);
+    expect(mocked.notifyUnavailableMock).toHaveBeenCalledWith("auto_restart_startup");
+    expect(mocked.notifyReadyMock).toHaveBeenCalledWith("auto_restart_startup");
 
     service.stop();
   });
@@ -172,14 +170,14 @@ describe("opencode/auto-restart", () => {
     await vi.advanceTimersByTimeAsync(300_000);
 
     expect(mocked.healthMock).toHaveBeenCalledTimes(2);
-    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(1);
+    expect(mocked.notifyReadyMock).toHaveBeenCalledTimes(1);
 
     service.stop();
   });
 
-  it("keeps auto-restart recovered when cache refresh fails", async () => {
+  it("keeps auto-restart recovered when ready lifecycle handler fails", async () => {
     mocked.config.opencode.autoRestartEnabled = true;
-    mocked.warmupSessionDirectoryCacheMock.mockRejectedValueOnce(new Error("refresh failed"));
+    mocked.notifyReadyMock.mockRejectedValueOnce(new Error("ready failed"));
     mocked.healthMock
       .mockRejectedValueOnce(new Error("offline"))
       .mockResolvedValueOnce(healthyResponse());
@@ -188,11 +186,10 @@ describe("opencode/auto-restart", () => {
     await service.start();
 
     expect(mocked.startLocalOpencodeServerMock).toHaveBeenCalledTimes(1);
-    expect(mocked.loggerWarnMock).toHaveBeenCalledWith(
-      "[OpenCodeReady] Failed to refresh session cache: reason=auto_restart_startup",
+    expect(mocked.loggerErrorMock).toHaveBeenCalledWith(
+      "[OpenCodeAutoRestart] Failed to check or restart OpenCode server",
       expect.any(Error),
     );
-    expect(mocked.loggerErrorMock).not.toHaveBeenCalled();
 
     service.stop();
   });
@@ -210,7 +207,8 @@ describe("opencode/auto-restart", () => {
     await vi.advanceTimersByTimeAsync(300_000);
 
     expect(mocked.startLocalOpencodeServerMock).toHaveBeenCalledTimes(1);
-    expect(mocked.warmupSessionDirectoryCacheMock).toHaveBeenCalledTimes(2);
+    expect(mocked.notifyUnavailableMock).toHaveBeenCalledWith("auto_restart_interval");
+    expect(mocked.notifyReadyMock).toHaveBeenCalledTimes(2);
 
     service.stop();
   });

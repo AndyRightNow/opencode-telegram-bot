@@ -2,8 +2,11 @@ import { reconcileStoredModelSelection } from "../model/manager.js";
 import { warmupSessionDirectoryCache } from "../session/cache-manager.js";
 import { logger } from "../utils/logger.js";
 import { opencodeClient } from "./client.js";
+import { opencodeReadyLifecycle } from "./ready-lifecycle.js";
 
-async function isOpencodeServerHealthy(): Promise<boolean> {
+let readyRefreshRegistered = false;
+
+export async function isOpencodeServerHealthy(): Promise<boolean> {
   try {
     const { data, error } = await opencodeClient.global.health();
     return !error && data?.healthy === true;
@@ -30,6 +33,7 @@ export async function refreshSessionCacheAfterOpencodeReady(reason: string): Pro
 
 export async function refreshSessionCacheIfOpencodeReady(reason: string): Promise<boolean> {
   if (!(await isOpencodeServerHealthy())) {
+    opencodeReadyLifecycle.notifyUnavailable(reason);
     logger.warn(
       `[OpenCodeReady] OpenCode server is not running; skipping session cache refresh: reason=${reason}`,
     );
@@ -38,4 +42,23 @@ export async function refreshSessionCacheIfOpencodeReady(reason: string): Promis
 
   await refreshSessionCacheAfterOpencodeReady(reason);
   return true;
+}
+
+export function registerOpenCodeReadyRefreshHandler(): void {
+  if (readyRefreshRegistered) {
+    return;
+  }
+
+  readyRefreshRegistered = true;
+  opencodeReadyLifecycle.onReady((reason) => refreshSessionCacheAfterOpencodeReady(reason));
+}
+
+export async function notifyOpencodeReadyIfHealthy(reason: string): Promise<boolean> {
+  if (!(await isOpencodeServerHealthy())) {
+    opencodeReadyLifecycle.notifyUnavailable(reason);
+    logger.warn(`[OpenCodeReady] OpenCode server is not running: reason=${reason}`);
+    return false;
+  }
+
+  return opencodeReadyLifecycle.notifyReady(reason);
 }

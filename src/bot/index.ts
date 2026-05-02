@@ -56,6 +56,7 @@ import { interactionManager } from "../interaction/manager.js";
 import { clearAllInteractionState } from "../interaction/cleanup.js";
 import { keyboardManager } from "../keyboard/manager.js";
 import { stopEventListening, subscribeToEvents } from "../opencode/events.js";
+import { opencodeReadyLifecycle } from "../opencode/ready-lifecycle.js";
 import { summaryAggregator } from "../summary/aggregator.js";
 import { formatToolInfo } from "../summary/formatter.js";
 import { renderSubagentCards } from "../summary/subagent-formatter.js";
@@ -108,6 +109,7 @@ let botInstance: Bot<Context> | null = null;
 let chatIdInstance: number | null = null;
 let commandsInitialized = false;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let unsubscribeReadyRestore: (() => void) | null = null;
 
 const TELEGRAM_DOCUMENT_CAPTION_MAX_LENGTH = 1024;
 const RESPONSE_STREAM_THROTTLE_MS = config.bot.responseStreamThrottleMs;
@@ -1004,6 +1006,20 @@ export function createBot(): Bot<Context> {
   botInstance = bot;
   chatIdInstance = config.telegram.allowedUserId;
 
+  unsubscribeReadyRestore?.();
+  unsubscribeReadyRestore = opencodeReadyLifecycle.onReady(async (reason) => {
+    const restored = await restoreAttachedCurrentSession({
+      bot,
+      chatId: config.telegram.allowedUserId,
+      ensureEventSubscription,
+      forceFullRestore: true,
+    });
+
+    if (restored) {
+      logger.info(`[Bot] Restored followed session after OpenCode ready: reason=${reason}`);
+    }
+  });
+
   // Heartbeat for diagnostics: verify the event loop is not blocked
   let heartbeatCounter = 0;
   heartbeatTimer = setInterval(() => {
@@ -1257,16 +1273,6 @@ export function createBot(): Bot<Context> {
   // Voice and audio message handlers (STT transcription -> prompt)
   const voicePromptDeps = { bot, ensureEventSubscription };
 
-  safeBackgroundTask({
-    taskName: "bot.restoreFollowedSession",
-    task: () =>
-      restoreAttachedCurrentSession({
-        bot,
-        chatId: config.telegram.allowedUserId,
-        ensureEventSubscription,
-      }),
-  });
-
   bot.on("message:voice", async (ctx) => {
     logger.debug(`[Bot] Received voice message, chatId=${ctx.chat.id}`);
     botInstance = bot;
@@ -1413,6 +1419,8 @@ export function createBot(): Bot<Context> {
 }
 
 export function cleanupBotRuntime(reason: string): void {
+  unsubscribeReadyRestore?.();
+  unsubscribeReadyRestore = null;
   stopEventListening();
   summaryAggregator.clear();
   responseStreamer.clearAll(reason);

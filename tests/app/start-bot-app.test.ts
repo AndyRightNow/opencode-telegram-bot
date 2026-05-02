@@ -5,7 +5,8 @@ const mocked = vi.hoisted(() => ({
   cleanupBotRuntimeMock: vi.fn(),
   autoRestartStartMock: vi.fn(),
   autoRestartStopMock: vi.fn(),
-  refreshSessionCacheIfOpencodeReadyMock: vi.fn(),
+  notifyOpencodeReadyIfHealthyMock: vi.fn(),
+  registerOpenCodeReadyRefreshHandlerMock: vi.fn(),
   loadSettingsMock: vi.fn(),
   scheduledTaskInitializeMock: vi.fn(),
   scheduledTaskShutdownMock: vi.fn(),
@@ -45,7 +46,8 @@ vi.mock("../../src/opencode/auto-restart.js", () => ({
 }));
 
 vi.mock("../../src/opencode/ready-refresh.js", () => ({
-  refreshSessionCacheIfOpencodeReady: mocked.refreshSessionCacheIfOpencodeReadyMock,
+  notifyOpencodeReadyIfHealthy: mocked.notifyOpencodeReadyIfHealthyMock,
+  registerOpenCodeReadyRefreshHandler: mocked.registerOpenCodeReadyRefreshHandlerMock,
 }));
 
 vi.mock("../../src/settings/manager.js", () => ({
@@ -111,7 +113,8 @@ describe("app/start-bot-app", () => {
     mocked.cleanupBotRuntimeMock.mockReset();
     mocked.autoRestartStartMock.mockReset();
     mocked.autoRestartStopMock.mockReset();
-    mocked.refreshSessionCacheIfOpencodeReadyMock.mockReset();
+    mocked.notifyOpencodeReadyIfHealthyMock.mockReset();
+    mocked.registerOpenCodeReadyRefreshHandlerMock.mockReset();
     mocked.loadSettingsMock.mockReset();
     mocked.scheduledTaskInitializeMock.mockReset();
     mocked.scheduledTaskShutdownMock.mockReset();
@@ -127,7 +130,7 @@ describe("app/start-bot-app", () => {
 
     mocked.createBotMock.mockReturnValue(createBot());
     mocked.autoRestartStartMock.mockResolvedValue(false);
-    mocked.refreshSessionCacheIfOpencodeReadyMock.mockResolvedValue(false);
+    mocked.notifyOpencodeReadyIfHealthyMock.mockResolvedValue(false);
     mocked.loadSettingsMock.mockResolvedValue(undefined);
     mocked.scheduledTaskInitializeMock.mockResolvedValue(undefined);
     mocked.reconcileStoredModelSelectionMock.mockResolvedValue(undefined);
@@ -136,17 +139,18 @@ describe("app/start-bot-app", () => {
     mocked.getLogFilePathMock.mockReturnValue(null);
   });
 
-  it("refreshes session cache on startup when auto-restart did not handle startup", async () => {
+  it("registers ready refresh and performs startup health notification", async () => {
     await startBotApp();
 
-    expect(mocked.refreshSessionCacheIfOpencodeReadyMock).toHaveBeenCalledWith("startup");
+    expect(mocked.registerOpenCodeReadyRefreshHandlerMock).toHaveBeenCalledTimes(1);
+    expect(mocked.notifyOpencodeReadyIfHealthyMock).toHaveBeenCalledWith("startup");
   });
 
-  it("does not duplicate startup refresh when auto-restart handled startup", async () => {
+  it("runs startup health notification even when auto-restart handled startup", async () => {
     mocked.autoRestartStartMock.mockResolvedValue(true);
 
     await startBotApp();
 
-    expect(mocked.refreshSessionCacheIfOpencodeReadyMock).not.toHaveBeenCalled();
+    expect(mocked.notifyOpencodeReadyIfHealthyMock).toHaveBeenCalledWith("startup");
   });
 });

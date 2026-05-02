@@ -2,7 +2,7 @@ import { CommandContext, Context } from "grammy";
 import { config } from "../../config.js";
 import { opencodeClient } from "../../opencode/client.js";
 import { resolveLocalOpencodeTarget, startLocalOpencodeServer } from "../../opencode/process.js";
-import { refreshSessionCacheAfterOpencodeReady } from "../../opencode/ready-refresh.js";
+import { opencodeReadyLifecycle } from "../../opencode/ready-lifecycle.js";
 import { logger } from "../../utils/logger.js";
 import { t } from "../../i18n/index.js";
 import { editBotText } from "../utils/telegram-text.js";
@@ -53,7 +53,7 @@ export async function opencodeStartCommand(ctx: CommandContext<Context>) {
         await ctx.reply(
           t("opencode_start.already_running", { version: data.version || t("common.unknown") }),
         );
-        await refreshSessionCacheAfterOpencodeReady("opencode_start_already_running");
+        await opencodeReadyLifecycle.notifyReady("opencode_start_already_running");
         return;
       }
     } catch {
@@ -108,7 +108,7 @@ export async function opencodeStartCommand(ctx: CommandContext<Context>) {
     });
 
     logger.info(`[Bot] OpenCode server started successfully, PID=${pid}, port=${localTarget.port}`);
-    await refreshSessionCacheAfterOpencodeReady("opencode_start_success");
+    await opencodeReadyLifecycle.notifyReady("opencode_start_success");
   } catch (err) {
     logger.error("[Bot] Error in /opencode-start command:", err);
     await ctx.reply(t("opencode_start.error"));
