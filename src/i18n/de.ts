@@ -118,7 +118,7 @@ export const de: I18nDictionary = {
 
   "tts.enabled": "🔊 Audioantworten global aktiviert.",
   "tts.not_configured":
-    "⚠️ Audioantworten sind nicht verfugbar. Setze zuerst `TTS_API_URL` und `TTS_API_KEY`.",
+    "⚠️ Audioantworten sind nicht verfügbar. Prüfe TTS-Anbieter-Einstellungen:\n\nOpenAI: `TTS_API_URL` und `TTS_API_KEY` setzen\nGoogle: `GOOGLE_APPLICATION_CREDENTIALS` setzen\nVolcengine: `BYTEDANCE_TTS_API_KEY` setzen",
   "tts.disabled": "🔇 Audioantworten global deaktiviert.",
   "tts.failed": "⚠️ Audioreply konnte nicht erzeugt werden.",
 

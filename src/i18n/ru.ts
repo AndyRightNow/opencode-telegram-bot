@@ -111,7 +111,7 @@ export const ru: I18nDictionary = {
     "🔴 OpenCode Server недоступен\n\nИспользуйте /opencode_start для запуска сервера.",
 
   "tts.enabled": "🔊 Аудиоответы включены глобально.",
-  "tts.not_configured": "⚠️ Аудиоответы недоступны. Сначала укажите `TTS_API_URL` и `TTS_API_KEY`.",
+  "tts.not_configured": "⚠️ Аудиоответы недоступны. Проверьте настройки TTS-провайдера:\n\nOpenAI: укажите `TTS_API_URL` и `TTS_API_KEY`\nGoogle: укажите `GOOGLE_APPLICATION_CREDENTIALS`\nVolcengine: укажите `BYTEDANCE_TTS_API_KEY`",
   "tts.disabled": "🔇 Аудиоответы выключены глобально.",
   "tts.failed": "⚠️ Не удалось создать аудиоответ.",
 

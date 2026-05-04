@@ -6,7 +6,7 @@ const runtimePaths = getRuntimePaths();
 dotenv.config({ path: runtimePaths.envFilePath, quiet: true });
 
 export type MessageFormatMode = "raw" | "markdown";
-export type TtsProvider = "openai" | "google";
+export type TtsProvider = "openai" | "google" | "volcengine";
 
 function getEnvVar(key: string, required: boolean = true): string {
   const value = process.env[key];
@@ -76,7 +76,7 @@ function getOptionalMessageFormatModeEnvVar(
   return defaultValue;
 }
 
-const VALID_TTS_PROVIDERS: TtsProvider[] = ["openai", "google"];
+const VALID_TTS_PROVIDERS: TtsProvider[] = ["openai", "google", "volcengine"];
 
 function getOptionalTtsProviderEnvVar(key: string, defaultValue: TtsProvider): TtsProvider {
   const value = getEnvVar(key, false);
@@ -145,13 +145,20 @@ export const config = {
   },
   tts: (() => {
     const provider = getOptionalTtsProviderEnvVar("TTS_PROVIDER", "openai");
-    const defaultVoice = provider === "google" ? "en-US-Studio-O" : "alloy";
+    const defaultVoice =
+      provider === "google"
+        ? "en-US-Studio-O"
+        : provider === "volcengine"
+          ? "zh_female_nvleishen_uranus_bigtts"
+          : "alloy";
     return {
       apiUrl: getEnvVar("TTS_API_URL", false),
       apiKey: getEnvVar("TTS_API_KEY", false),
       provider,
       model: getEnvVar("TTS_MODEL", false) || "gpt-4o-mini-tts",
       voice: getEnvVar("TTS_VOICE", false) || defaultVoice,
+      byteDanceApiKey: getEnvVar("BYTEDANCE_TTS_API_KEY", false),
+      byteDanceResourceId: getEnvVar("BYTEDANCE_TTS_RESOURCE_ID", false) || "seed-tts-2.0",
     };
   })(),
 };

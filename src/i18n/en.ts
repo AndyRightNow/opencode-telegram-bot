@@ -112,7 +112,7 @@ export const en = {
 
   "tts.enabled": "🔊 Audio replies enabled globally.",
   "tts.not_configured":
-    "⚠️ Audio replies are unavailable. Set `TTS_API_URL` and `TTS_API_KEY` first.",
+    "⚠️ Audio replies are unavailable. Check TTS provider configuration:\n\nOpenAI: set `TTS_API_URL` and `TTS_API_KEY`\nGoogle: set `GOOGLE_APPLICATION_CREDENTIALS`\nVolcengine: set `BYTEDANCE_TTS_API_KEY`",
   "tts.disabled": "🔇 Audio replies disabled globally.",
   "tts.failed": "⚠️ Failed to generate audio reply.",
 

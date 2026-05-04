@@ -14,6 +14,9 @@ export function isTtsConfigured(): boolean {
   if (config.tts.provider === "google") {
     return Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS);
   }
+  if (config.tts.provider === "volcengine") {
+    return Boolean(config.tts.byteDanceApiKey);
+  }
   return Boolean(config.tts.apiUrl && config.tts.apiKey);
 }
 
@@ -142,12 +145,89 @@ async function synthesizeWithOpenAi(text: string): Promise<TtsResult> {
   }
 }
 
+async function synthesizeWithVolcengine(text: string): Promise<TtsResult> {
+  const VOLCENGINE_TTS_URL =
+    "https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse";
+
+  logger.debug(
+    `[TTS] Volcengine: speaker=${config.tts.voice}, chars=${text.length}`,
+  );
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TTS_REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(VOLCENGINE_TTS_URL, {
+      method: "POST",
+      headers: {
+        "X-Api-Key": config.tts.byteDanceApiKey,
+        "X-Api-Resource-Id": config.tts.byteDanceResourceId,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user: { uid: "opencode-telegram-bot" },
+        req_params: {
+          text,
+          speaker: config.tts.voice,
+          audio_params: { format: "mp3", sample_rate: 24000 },
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(
+        `Volcengine TTS HTTP ${response.status}: ${errorBody.slice(0, 200)}`,
+      );
+    }
+
+    const textBody = await response.text();
+    const chunks: Buffer[] = [];
+
+    for (const block of textBody.split("\n\n")) {
+      const dataMatch = block.match(/^data:\s*(.+)$/m);
+      if (!dataMatch) continue;
+
+      let payload: { code: number; data?: string; message?: string };
+      try {
+        payload = JSON.parse(dataMatch[1]);
+      } catch {
+        continue;
+      }
+
+      if (payload.code > 0 && payload.code !== 20000000) {
+        throw new Error(
+          `Volcengine TTS error ${payload.code}: ${payload.message || "unknown"}`,
+        );
+      }
+      if (payload.data) {
+        chunks.push(Buffer.from(payload.data, "base64"));
+      }
+    }
+
+    if (chunks.length === 0) {
+      throw new Error("Volcengine TTS returned no audio data");
+    }
+
+    const buffer = Buffer.concat(chunks);
+    logger.debug(`[TTS] Volcengine generated speech: ${buffer.length} bytes`);
+    return { buffer, filename: "assistant-reply.mp3", mimeType: "audio/mpeg" };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // --- Public API ---
 
 function getNotConfiguredMessage(): string {
-  return config.tts.provider === "google"
-    ? "TTS is not configured: set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud TTS"
-    : "TTS is not configured: set TTS_API_URL and TTS_API_KEY";
+  if (config.tts.provider === "google") {
+    return "TTS is not configured: set GOOGLE_APPLICATION_CREDENTIALS for Google Cloud TTS";
+  }
+  if (config.tts.provider === "volcengine") {
+    return "TTS is not configured: set BYTEDANCE_TTS_API_KEY for Volcengine TTS";
+  }
+  return "TTS is not configured: set TTS_API_URL and TTS_API_KEY";
 }
 
 export async function synthesizeSpeech(text: string): Promise<TtsResult> {
@@ -165,6 +245,9 @@ export async function synthesizeSpeech(text: string): Promise<TtsResult> {
   try {
     if (config.tts.provider === "google") {
       return await synthesizeWithGoogle(input);
+    }
+    if (config.tts.provider === "volcengine") {
+      return await synthesizeWithVolcengine(input);
     }
     return await synthesizeWithOpenAi(input);
   } catch (err) {

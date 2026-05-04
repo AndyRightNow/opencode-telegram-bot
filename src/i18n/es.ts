@@ -118,7 +118,7 @@ export const es: I18nDictionary = {
 
   "tts.enabled": "🔊 Respuestas de audio activadas globalmente.",
   "tts.not_configured":
-    "⚠️ Las respuestas de audio no estan disponibles. Configura primero `TTS_API_URL` y `TTS_API_KEY`.",
+    "⚠️ Las respuestas de audio no están disponibles. Revisa la configuración del proveedor TTS:\n\nOpenAI: configura `TTS_API_URL` y `TTS_API_KEY`\nGoogle: configura `GOOGLE_APPLICATION_CREDENTIALS`\nVolcengine: configura `BYTEDANCE_TTS_API_KEY`",
   "tts.disabled": "🔇 Respuestas de audio desactivadas globalmente.",
   "tts.failed": "⚠️ No se pudo generar la respuesta de audio.",
 

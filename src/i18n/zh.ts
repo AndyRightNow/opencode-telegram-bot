@@ -101,7 +101,7 @@ export const zh: I18nDictionary = {
   "status.server_unavailable": "🔴 OpenCode 服务器不可用\n\n使用 /opencode_start 启动服务器。",
 
   "tts.enabled": "🔊 已全局启用语音回复。",
-  "tts.not_configured": "⚠️ 语音回复暂不可用。请先设置 `TTS_API_URL` 和 `TTS_API_KEY`。",
+  "tts.not_configured": "⚠️ 语音回复暂不可用。请先配置 TTS 提供商：\n\nOpenAI: 设置 `TTS_API_URL` 和 `TTS_API_KEY`\nGoogle: 设置 `GOOGLE_APPLICATION_CREDENTIALS`\nVolcengine: 设置 `BYTEDANCE_TTS_API_KEY`",
   "tts.disabled": "🔇 已全局关闭语音回复。",
   "tts.failed": "⚠️ 生成语音回复失败。",
 
